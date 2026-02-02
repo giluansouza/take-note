@@ -45,6 +45,9 @@ export default function SettingsScreen() {
     Linking.openURL(TERMS_OF_SERVICE_URL);
   };
 
+  const handleOpenArchived = () => {
+    router.push("/archived");
+  };
   const getCurrentLanguageName = () => {
     const lang = availableLanguages.find((l) => l.code === currentLanguage);
     return lang?.nativeName || "English";
@@ -70,6 +73,10 @@ export default function SettingsScreen() {
           >
             <Text style={styles.rowLabel}>{t("settings.language")}</Text>
             <Text style={styles.rowValue}>{getCurrentLanguageName()}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={handleOpenArchived}>
+            <Text style={styles.rowLabel}>{t("archived.title")}</Text>
+            <Text style={styles.rowArrow}>{">"}</Text>
           </TouchableOpacity>
         </View>
 
@@ -105,7 +112,7 @@ export default function SettingsScreen() {
           style={styles.modalOverlay}
           onPress={() => setShowLanguagePicker(false)}
         >
-          <View style={styles.modalContent}>
+          <Pressable style={styles.modalContent} onPress={() => {}}>
             <Text style={styles.modalTitle}>{t("settings.selectLanguage")}</Text>
             {availableLanguages.map((lang) => (
               <TouchableOpacity
@@ -132,7 +139,7 @@ export default function SettingsScreen() {
             >
               <Text style={styles.cancelText}>{t("common.cancel")}</Text>
             </TouchableOpacity>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </View>
@@ -228,6 +235,7 @@ const styles = StyleSheet.create({
     padding: 20,
     width: "80%",
     maxWidth: 320,
+    minHeight: "70%",
   },
   modalTitle: {
     fontSize: 18,

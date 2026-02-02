@@ -37,6 +37,10 @@ export default {
     addSection: '+ Adicionar Seção',
     sectionTitle: 'Título da seção',
     sectionSubtitle: 'Subtítulo (opcional)',
+    addSectionHeader: 'Adicionar seção',
+    deleteSectionTitle: 'Excluir seção?',
+    deleteSectionMessage: 'Isso removerá a seção e seus blocos.',
+    deleteSectionConfirm: 'Excluir seção',
     addBlock: '+ Adicionar Bloco',
     text: 'Texto',
     checklist: 'Checklist',
@@ -44,6 +48,19 @@ export default {
     enterText: 'Digite o texto...',
     addItem: '+ Adicionar item',
     item: 'Item',
+    archivedNotice: 'Nota arquivada',
+    undo: 'Desfazer',
+  },
+
+  blocks: {
+    blockType: 'Tipo de bloco',
+    text: 'Texto',
+    title: 'Título',
+    subtitle: 'Subtítulo',
+    quote: 'Citação',
+    list: 'Lista',
+    checklist: 'Checklist',
+    insertBelow: 'Inserir abaixo',
   },
 
   categories: {
@@ -63,10 +80,11 @@ export default {
     skip: 'Pular',
     addSelected: 'Adicionar Selecionadas',
     noNotesAvailable: 'Nenhuma nota disponível para adicionar',
+    reorderList: 'Reordenar lista',
   },
 
   archived: {
-    title: 'Arquivadas',
+    title: 'Notas arquivadas',
     noArchived: 'Nenhuma nota arquivada',
     deleteConfirmTitle: 'Excluir Permanentemente?',
     deleteConfirmMessage: 'Esta nota será excluída permanentemente. Esta ação não pode ser desfeita.',
@@ -86,5 +104,19 @@ export default {
   languages: {
     en: 'English',
     'pt-BR': 'Português (Brasil)',
+  },
+
+  blocks: {
+    blockType: 'Tipo de bloco',
+    text: 'Texto',
+    title: 'Título',
+    subtitle: 'Subtítulo',
+    quote: 'Citação',
+    list: 'Lista',
+    checklist: 'Checklist',
+    insertBelow: 'Inserir abaixo',
+    delete: 'Excluir bloco',
+    deleted: 'Bloco excluído',
+    undo: 'Desfazer',
   },
 };

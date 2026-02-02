@@ -1,4 +1,5 @@
 import { getDatabase } from './db';
+import { BlockType } from './blocks.repository';
 
 export interface Note {
   id: number;
@@ -7,6 +8,11 @@ export interface Note {
   updated_at: string;
   archived: number;
   category_id: number | null;
+}
+
+export interface NoteWithPreview extends Note {
+  first_block_content?: string | null;
+  first_block_type?: BlockType | null;
 }
 
 export interface NotesFilter {
@@ -37,6 +43,49 @@ export async function getAllNotes(filter?: NotesFilter): Promise<Note[]> {
   query += ' ORDER BY updated_at DESC';
 
   return db.getAllAsync<Note>(query, params);
+}
+
+export async function getAllNotesWithPreview(filter?: NotesFilter): Promise<NoteWithPreview[]> {
+  const db = await getDatabase();
+
+  let query = `
+    SELECT notes.*,
+      (
+        SELECT content
+        FROM blocks
+        WHERE blocks.note_id = notes.id
+        ORDER BY blocks."order" ASC
+        LIMIT 1
+      ) AS first_block_content,
+      (
+        SELECT type
+        FROM blocks
+        WHERE blocks.note_id = notes.id
+        ORDER BY blocks."order" ASC
+        LIMIT 1
+      ) AS first_block_type
+    FROM notes
+    WHERE archived = 0
+  `;
+  const params: (string | number)[] = [];
+
+  if (filter?.search) {
+    query += ' AND title LIKE ?';
+    params.push(`%${filter.search}%`);
+  }
+
+  if (filter?.categoryId !== undefined) {
+    if (filter.categoryId === null) {
+      query += ' AND category_id IS NULL';
+    } else {
+      query += ' AND category_id = ?';
+      params.push(filter.categoryId);
+    }
+  }
+
+  query += ' ORDER BY updated_at DESC';
+
+  return db.getAllAsync<NoteWithPreview>(query, params);
 }
 
 export async function getArchivedNotes(): Promise<Note[]> {

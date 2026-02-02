@@ -1,23 +1,31 @@
 import {
   Category,
   createCategory,
+  deleteCategory,
   getAllCategories,
+  updateCategory,
+  updateCategoryPositions,
 } from "@/lib/categories.repository";
+import { createBlock, parseChecklistContent, parseListContent } from "@/lib/blocks.repository";
 import {
   archiveNote,
   createNote,
   deleteNote,
-  getAllNotes,
-  Note,
+  getAllNotesWithPreview,
+  NoteWithPreview,
   setNoteCategory,
+  unarchiveNote,
 } from "@/lib/notes.repository";
+import { formatFallbackTitle } from "@/lib/title";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Ionicons } from "@expo/vector-icons";
 import {
   Alert,
   FlatList,
+  Pressable,
   Modal,
   ScrollView,
   StyleSheet,
@@ -45,24 +53,35 @@ const CATEGORY_COLORS = [
 type CategoryFilter = "all" | "uncategorized" | number;
 
 export default function NotesListScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<NoteWithPreview[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilter>("all");
+  const [noteCounts, setNoteCounts] = useState<{ [key: string]: number }>({});
   const swipeableRefs = useRef<Map<number, Swipeable>>(new Map());
+  const [undoArchive, setUndoArchive] = useState<NoteWithPreview | null>(null);
+  const undoArchiveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Category creation modal state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [editingColor, setEditingColor] = useState<string | null>(null);
+  const [showCategoryOptionsModal, setShowCategoryOptionsModal] = useState(false);
+  const [categoryOptionsId, setCategoryOptionsId] = useState<number | null>(null);
+  const [showReorderModal, setShowReorderModal] = useState(false);
+  const [reorderList, setReorderList] = useState<Category[]>([]);
 
   // Note selection modal state
   const [showNoteSelectionModal, setShowNoteSelectionModal] = useState(false);
   const [newCategoryId, setNewCategoryId] = useState<number | null>(null);
-  const [allNotesForSelection, setAllNotesForSelection] = useState<Note[]>([]);
+  const [allNotesForSelection, setAllNotesForSelection] = useState<NoteWithPreview[]>([]);
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<number>>(
     new Set(),
   );
@@ -73,11 +92,40 @@ export default function NotesListScreen() {
     }, []),
   );
 
+  const calculateNoteCounts = (
+    notesToCount: NoteWithPreview[],
+    allCategories: Category[],
+  ) => {
+    const counts: { [key: string]: number } = {};
+    // Initialize counts for all existing categories to 0
+    allCategories.forEach((cat) => {
+      counts[cat.id] = 0;
+    });
+    counts["uncategorized"] = 0;
+
+    // Tally the counts from the notes
+    notesToCount.forEach((note) => {
+      if (note.category_id && counts.hasOwnProperty(note.category_id)) {
+        counts[note.category_id]++;
+      } else {
+        counts["uncategorized"]++;
+      }
+    });
+    return counts;
+  };
+
   const loadData = async () => {
     try {
-      const [allCategories] = await Promise.all([getAllCategories()]);
+      const [allCategories, allNotesForCounting] = await Promise.all([
+        getAllCategories(),
+        getAllNotesWithPreview({}), // Fetch all notes for counting
+      ]);
       setCategories(allCategories);
-      await loadNotes();
+
+      const counts = calculateNoteCounts(allNotesForCounting, allCategories);
+      setNoteCounts(counts);
+
+      await loadNotes(); // This reloads notes with current filters
     } catch (error) {
       console.error("Failed to load data:", error);
     }
@@ -97,7 +145,7 @@ export default function NotesListScreen() {
         filter.categoryId = selectedCategory;
       }
 
-      const allNotes = await getAllNotes(filter);
+      const allNotes = await getAllNotesWithPreview(filter);
       setNotes(allNotes);
     } catch (error) {
       console.error("Failed to load notes:", error);
@@ -113,8 +161,11 @@ export default function NotesListScreen() {
 
   const handleCreateNote = async () => {
     try {
-      const id = await createNote(t("notes.untitled"));
-      router.push(`/note/${id}`);
+      const fallbackTitle = formatFallbackTitle(new Date(), i18n.language);
+      const id = await createNote(fallbackTitle);
+      // Create an initial text block for the new note
+      await createBlock(id, "text", 1000, ""); 
+      router.push({ pathname: "/note/[id]", params: { id: String(id), autofocus: "1" } });
     } catch (error) {
       console.error("Failed to create note:", error);
     }
@@ -127,10 +178,36 @@ export default function NotesListScreen() {
   const handleArchive = async (id: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
+      const archivedNote = notes.find((note) => note.id === id) || null;
       await archiveNote(id);
       setNotes((prev) => prev.filter((note) => note.id !== id));
+      if (archivedNote) {
+        if (undoArchiveTimeoutRef.current) {
+          clearTimeout(undoArchiveTimeoutRef.current);
+        }
+        setUndoArchive(archivedNote);
+        undoArchiveTimeoutRef.current = setTimeout(() => {
+          setUndoArchive(null);
+          undoArchiveTimeoutRef.current = null;
+        }, 3000);
+      }
     } catch (error) {
       console.error("Failed to archive note:", error);
+    }
+  };
+
+  const handleUndoArchive = async () => {
+    if (!undoArchive) return;
+    try {
+      await unarchiveNote(undoArchive.id);
+      setUndoArchive(null);
+      if (undoArchiveTimeoutRef.current) {
+        clearTimeout(undoArchiveTimeoutRef.current);
+        undoArchiveTimeoutRef.current = null;
+      }
+      await loadNotes();
+    } catch (error) {
+      console.error("Failed to undo archive:", error);
     }
   };
 
@@ -185,6 +262,107 @@ export default function NotesListScreen() {
     setSelectedColor(null);
   };
 
+  const handleOpenCategoryOptions = (categoryId: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCategoryOptionsId(categoryId);
+    setShowCategoryOptionsModal(true);
+  };
+
+  const handleCloseCategoryOptions = () => {
+    setShowCategoryOptionsModal(false);
+    setCategoryOptionsId(null);
+  };
+
+  const handleOpenEditCategory = () => {
+    if (categoryOptionsId === null) return;
+    const category = categories.find((c) => c.id === categoryOptionsId);
+    if (!category) return;
+    setEditingCategoryId(category.id);
+    setEditingCategoryName(category.title);
+    setEditingColor(category.color);
+    setShowEditCategoryModal(true);
+    handleCloseCategoryOptions();
+  };
+
+  const handleCloseEditCategory = () => {
+    setShowEditCategoryModal(false);
+    setEditingCategoryId(null);
+    setEditingCategoryName("");
+    setEditingColor(null);
+  };
+
+  const handleSaveEditCategory = async () => {
+    if (!editingCategoryId || !editingCategoryName.trim()) return;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await updateCategory(editingCategoryId, editingCategoryName.trim(), editingColor);
+      handleCloseEditCategory();
+      const allCategories = await getAllCategories();
+      setCategories(allCategories);
+    } catch (error) {
+      console.error("Failed to update category:", error);
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (categoryOptionsId === null) return;
+    const category = categories.find((c) => c.id === categoryOptionsId);
+    if (!category) return;
+    Alert.alert(
+      t("categories.deleteCategory"),
+      t("categories.deleteCategoryMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteCategory(category.id);
+              handleCloseCategoryOptions();
+              const allCategories = await getAllCategories();
+              setCategories(allCategories);
+              await loadNotes();
+            } catch (error) {
+              console.error("Failed to delete category:", error);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleOpenReorder = () => {
+    setReorderList([...categories]);
+    setShowReorderModal(true);
+    handleCloseCategoryOptions();
+  };
+
+  const handleCloseReorder = () => {
+    setShowReorderModal(false);
+    setReorderList([]);
+  };
+
+  const moveCategory = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= reorderList.length) return;
+    const updated = [...reorderList];
+    const [item] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, item);
+    setReorderList(updated);
+  };
+
+  const handleSaveReorder = async () => {
+    try {
+      const updates = reorderList.map((c, index) => ({ id: c.id, position: index }));
+      await updateCategoryPositions(updates);
+      handleCloseReorder();
+      const allCategories = await getAllCategories();
+      setCategories(allCategories);
+    } catch (error) {
+      console.error("Failed to reorder categories:", error);
+    }
+  };
+
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
 
@@ -222,7 +400,7 @@ export default function NotesListScreen() {
       setCategories(allCategories);
 
       // Load all uncategorized notes for selection
-      const uncategorizedNotes = await getAllNotes({ categoryId: null });
+      const uncategorizedNotes = await getAllNotesWithPreview({ categoryId: null });
       setAllNotesForSelection(uncategorizedNotes);
       setSelectedNoteIds(new Set());
       setShowNoteSelectionModal(true);
@@ -239,8 +417,10 @@ export default function NotesListScreen() {
     setNewCategoryName("");
   };
 
-  const handleToggleNoteSelection = (noteId: number) => {
+  const handleToggleNoteSelection = async (noteId: number) => {
+    if (!newCategoryId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const isSelected = selectedNoteIds.has(noteId);
     setSelectedNoteIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(noteId)) {
@@ -250,22 +430,11 @@ export default function NotesListScreen() {
       }
       return newSet;
     });
-  };
-
-  const handleAddNotesToCategory = async () => {
-    if (!newCategoryId || selectedNoteIds.size === 0) return;
-
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const promises = Array.from(selectedNoteIds).map((noteId) =>
-        setNoteCategory(noteId, newCategoryId),
-      );
-      await Promise.all(promises);
-
-      handleCloseNoteSelectionModal();
+      await setNoteCategory(noteId, isSelected ? null : newCategoryId);
       await loadNotes();
     } catch (error) {
-      console.error("Failed to add notes to category:", error);
+      console.error("Failed to update note category:", error);
     }
   };
 
@@ -284,6 +453,54 @@ export default function NotesListScreen() {
     return category?.color || null;
   };
 
+  const getCategory = (categoryId: number | null) => {
+    if (!categoryId) return null;
+    return categories.find((c) => c.id === categoryId) || null;
+  };
+
+  const getPreviewText = (note: NoteWithPreview) => {
+    const content = note.first_block_content;
+    const type = note.first_block_type;
+
+    if (!content || !type) return null;
+    const trimmed = content.trim();
+    if (!trimmed) return null;
+
+    switch (type) {
+      case 'checklist':
+        try {
+          const parsed = parseChecklistContent(trimmed);
+          if (parsed.length > 0) {
+            const firstItemText = parsed[0].text.trim();
+            return firstItemText || null;
+          }
+        } catch {
+          return null;
+        }
+        return null;
+      case 'list':
+        try {
+          const parsed = parseListContent(trimmed);
+          if (parsed.length > 0) {
+            const firstItemText = parsed[0].text.trim();
+            return firstItemText || null;
+          }
+        } catch {
+          return null;
+        }
+        return null;
+      case 'text':
+      default:
+        const firstLine = trimmed.split("\n")[0]?.trim();
+        return firstLine || null;
+    }
+  };
+
+  const isLegacyTitle = (value: string) => {
+    const trimmed = value.trim();
+    return !trimmed || trimmed === "Untitled" || trimmed === "Sem título";
+  };
+
   const renderLeftActions = () => (
     <View style={styles.archiveAction}>
       <Text style={styles.actionText}>{t("notes.archive")}</Text>
@@ -296,8 +513,13 @@ export default function NotesListScreen() {
     </View>
   );
 
-  const renderNote = ({ item }: { item: Note }) => {
+  const renderNote = ({ item }: { item: NoteWithPreview }) => {
+    const category = getCategory(item.category_id);
     const categoryColor = getCategoryColor(item.category_id);
+    const previewText = getPreviewText(item);
+    const displayTitle = isLegacyTitle(item.title)
+      ? formatFallbackTitle(new Date(item.created_at), i18n.language)
+      : item.title;
 
     return (
       <Swipeable
@@ -322,19 +544,36 @@ export default function NotesListScreen() {
           activeOpacity={0.7}
         >
           <View style={styles.noteContent}>
-            {categoryColor && (
-              <View
-                style={[
-                  styles.categoryIndicator,
-                  { backgroundColor: categoryColor },
-                ]}
-              />
-            )}
             <View style={styles.noteTextContent}>
               <Text style={styles.noteTitle} numberOfLines={1}>
-                {item.title || t("notes.untitled")}
+                {displayTitle}
               </Text>
-              <Text style={styles.noteDate}>{formatDate(item.created_at)}</Text>
+              {previewText && (
+                <Text style={styles.notePreview} numberOfLines={1}>
+                  {previewText}
+                </Text>
+              )}
+              <View style={styles.noteMetaRow}>
+                <Text style={styles.noteDate}>{formatDate(item.created_at)}</Text>
+                {category && (
+                  <View
+                    style={[
+                      styles.categoryChip,
+                      // categoryColor && { borderColor: categoryColor }, // Removed border color
+                    ]}
+                  >
+                    {categoryColor && (
+                      <View
+                        style={[
+                          styles.categoryChipDot,
+                          { backgroundColor: categoryColor },
+                        ]}
+                      />
+                    )}
+                    <Text style={styles.categoryChipText}>{category.title}</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
         </TouchableOpacity>
@@ -350,16 +589,10 @@ export default function NotesListScreen() {
         <Text style={styles.headerTitle}>{t("notes.title")}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
-            onPress={handleOpenArchived}
-            style={styles.headerButton}
-          >
-            <Text style={styles.headerButtonText}>{t("archived.title")}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={handleOpenSettings}
             style={styles.headerButton}
           >
-            <Text style={styles.headerButtonText}>⚙</Text>
+            <Ionicons name="settings-outline" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -413,9 +646,9 @@ export default function NotesListScreen() {
                 styles.categoryBadge,
                 selectedCategory === category.id &&
                   styles.categoryBadgeSelected,
-                category.color && { borderColor: category.color },
               ]}
               onPress={() => handleCategoryPress(category.id)}
+              onLongPress={() => handleOpenCategoryOptions(category.id)}
             >
               {category.color && (
                 <View
@@ -433,6 +666,7 @@ export default function NotesListScreen() {
                 ]}
               >
                 {category.title}
+                {noteCounts[category.id] ? `  ${noteCounts[category.id]}` : ''}
               </Text>
             </TouchableOpacity>
           ))}
@@ -453,6 +687,7 @@ export default function NotesListScreen() {
               ]}
             >
               {t("categories.uncategorized")}
+              {noteCounts['uncategorized'] !== undefined ? `  ${noteCounts['uncategorized']}` : ''}
             </Text>
           </TouchableOpacity>
 
@@ -490,6 +725,15 @@ export default function NotesListScreen() {
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
+      {undoArchive && (
+        <View style={styles.undoToast}>
+          <Text style={styles.undoText}>{t("notes.archivedNotice")}</Text>
+          <TouchableOpacity onPress={handleUndoArchive}>
+            <Text style={styles.undoAction}>{t("notes.undo")}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Category Creation Modal */}
       <Modal
         visible={showCategoryModal}
@@ -497,9 +741,10 @@ export default function NotesListScreen() {
         transparent={true}
         onRequestClose={handleCloseCategoryModal}
       >
-        <View style={styles.modalOverlay}>
-          <View
+        <Pressable style={styles.modalOverlay} onPress={handleCloseCategoryModal}>
+          <Pressable
             style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}
+            onPress={() => {}}
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCloseCategoryModal}>
@@ -569,8 +814,8 @@ export default function NotesListScreen() {
                 {t("categories.createAndAddNotes")}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Note Selection Modal */}
@@ -580,13 +825,14 @@ export default function NotesListScreen() {
         transparent={true}
         onRequestClose={handleCloseNoteSelectionModal}
       >
-        <View style={styles.modalOverlay}>
-          <View
+        <Pressable style={styles.modalOverlay} onPress={handleCloseNoteSelectionModal}>
+          <Pressable
             style={[
               styles.modalContent,
               styles.noteSelectionModal,
               { paddingBottom: insets.bottom + 20 },
             ]}
+            onPress={() => {}}
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCloseNoteSelectionModal}>
@@ -597,21 +843,7 @@ export default function NotesListScreen() {
               <Text style={styles.modalTitle}>
                 {t("categories.addNotesToCategory")}
               </Text>
-              <TouchableOpacity
-                onPress={handleAddNotesToCategory}
-                disabled={selectedNoteIds.size === 0}
-              >
-                <Text
-                  style={[
-                    styles.modalActionText,
-                    selectedNoteIds.size === 0 &&
-                      styles.modalActionTextDisabled,
-                  ]}
-                >
-                  {t("categories.addSelected")}{" "}
-                  {selectedNoteIds.size > 0 && `(${selectedNoteIds.size})`}
-                </Text>
-              </TouchableOpacity>
+              <View style={{ width: 60 }} />
             </View>
 
             <Text style={styles.noteSelectionSubtitle}>
@@ -651,7 +883,12 @@ export default function NotesListScreen() {
                     </View>
                     <View style={styles.noteSelectionTextContent}>
                       <Text style={styles.noteSelectionTitle} numberOfLines={1}>
-                        {item.title || t("notes.untitled")}
+                        {isLegacyTitle(item.title)
+                          ? formatFallbackTitle(
+                              new Date(item.created_at),
+                              i18n.language,
+                            )
+                          : item.title}
                       </Text>
                       <Text style={styles.noteSelectionDate}>
                         {formatDate(item.created_at)}
@@ -659,10 +896,149 @@ export default function NotesListScreen() {
                     </View>
                   </TouchableOpacity>
                 )}
-              />
-            )}
-          </View>
-        </View>
+                />
+              )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Category Options Modal */}
+      <Modal
+        visible={showCategoryOptionsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseCategoryOptions}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleCloseCategoryOptions}>
+          <Pressable style={styles.optionsMenu} onPress={() => {}}>
+            <Text style={styles.modalTitle}>{t("categories.category")}</Text>
+            <TouchableOpacity style={styles.menuItem} onPress={handleOpenEditCategory}>
+              <Text style={styles.menuItemText}>{t("common.edit")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={handleDeleteCategory}>
+              <Text style={[styles.menuItemText, styles.deleteText]}>{t("common.delete")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={handleOpenReorder}>
+              <Text style={styles.menuItemText}>{t("categories.reorderList")}</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Edit Category Modal */}
+      <Modal
+        visible={showEditCategoryModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseEditCategory}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleCloseEditCategory}>
+          <Pressable
+            style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}
+            onPress={() => {}}
+          >
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={handleCloseEditCategory}>
+                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>{t("categories.editCategory")}</Text>
+              <TouchableOpacity
+                onPress={handleSaveEditCategory}
+                disabled={!editingCategoryName.trim()}
+              >
+                <Text
+                  style={[
+                    styles.modalActionText,
+                    !editingCategoryName.trim() && styles.modalActionTextDisabled,
+                  ]}
+                >
+                  {t("common.save")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.categoryInput}
+              value={editingCategoryName}
+              onChangeText={setEditingCategoryName}
+              placeholder={t("categories.categoryName")}
+              placeholderTextColor="#999"
+              autoFocus
+            />
+
+            <Text style={styles.colorPickerLabel}>
+              {t("categories.selectColor")}
+            </Text>
+            <View style={styles.colorPicker}>
+              {CATEGORY_COLORS.map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  style={[
+                    styles.colorOption,
+                    { backgroundColor: color },
+                    editingColor === color && styles.colorOptionSelected,
+                  ]}
+                  onPress={() => setEditingColor(color)}
+                />
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Reorder Categories Modal */}
+      <Modal
+        visible={showReorderModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseReorder}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleCloseReorder}>
+          <Pressable
+            style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}
+            onPress={() => {}}
+          >
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={handleCloseReorder}>
+                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>{t("categories.reorderList")}</Text>
+              <TouchableOpacity onPress={handleSaveReorder}>
+                <Text style={styles.modalActionText}>{t("common.save")}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={reorderList}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item, index }) => (
+                <View style={styles.reorderRow}>
+                  <Text style={styles.reorderText}>{item.title}</Text>
+                  <View style={styles.reorderActions}>
+                    <TouchableOpacity
+                      onPress={() => moveCategory(index, index - 1)}
+                      disabled={index === 0}
+                      style={styles.reorderButton}
+                    >
+                      <Ionicons name="chevron-up" size={18} color={index === 0 ? "#ccc" : "#333"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => moveCategory(index, index + 1)}
+                      disabled={index === reorderList.length - 1}
+                      style={styles.reorderButton}
+                    >
+                      <Ionicons
+                        name="chevron-down"
+                        size={18}
+                        color={index === reorderList.length - 1 ? "#ccc" : "#333"}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            />
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -714,8 +1090,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 40,
-    fontSize: 16,
+    height: 46,
+    fontSize: 18,
     color: "#000",
   },
   clearButton: {
@@ -735,11 +1111,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 2,
     borderRadius: 20,
     backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#f5f5f5",
+    // borderWidth: 1, // Removed to eliminate the border
+    // borderColor: "#f5f5f5", // Removed as border is gone
   },
   categoryBadgeSelected: {
     backgroundColor: "#000",
@@ -773,12 +1149,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  categoryIndicator: {
-    width: 4,
-    height: 40,
-    borderRadius: 2,
-    marginRight: 12,
-  },
   noteTextContent: {
     flex: 1,
   },
@@ -788,9 +1158,39 @@ const styles = StyleSheet.create({
     color: "#000",
     marginBottom: 4,
   },
+  notePreview: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 6,
+  },
+  noteMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   noteDate: {
     fontSize: 13,
     color: "#888",
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    // borderWidth: StyleSheet.hairlineWidth, // Removed to eliminate the border
+    // borderColor: "#ddd", // Removed as border is gone
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: "#fff",
+  },
+  categoryChipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    color: "#666",
   },
   archiveAction: {
     backgroundColor: "#007AFF",
@@ -845,6 +1245,28 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     marginTop: -2,
   },
+  undoToast: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 24,
+    backgroundColor: "#111",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  undoText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+  undoAction: {
+    color: "#4DA3FF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   addCategoryBadge: {
     width: 36,
     height: 36,
@@ -872,6 +1294,44 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingTop: 16,
     paddingHorizontal: 20,
+    minHeight: "70%",
+  },
+  optionsMenu: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 220,
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  deleteText: {
+    color: "#d32f2f",
+  },
+  reorderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#eee",
+  },
+  reorderText: {
+    flex: 1,
+    fontSize: 16,
+    color: "#333",
+  },
+  reorderActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  reorderButton: {
+    padding: 4,
   },
   modalHeader: {
     flexDirection: "row",

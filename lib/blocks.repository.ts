@@ -1,13 +1,15 @@
 import { getDatabase } from './db';
 
-export type BlockType = 'text' | 'checklist' | 'list';
+export type BlockType = 'text' | 'checklist' | 'list' | 'title' | 'subtitle' | 'quote';
 
 export interface Block {
   id: number;
-  section_id: number;
+  note_id: number;
   type: BlockType;
   content: string | null;
-  position: number;
+  order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ChecklistItem {
@@ -21,31 +23,46 @@ export interface ListItem {
   text: string;
 }
 
-export async function getBlocksBySectionId(sectionId: number): Promise<Block[]> {
+export async function getBlocksByNoteId(noteId: number): Promise<Block[]> {
   const db = await getDatabase();
   return db.getAllAsync<Block>(
-    'SELECT * FROM blocks WHERE section_id = ? ORDER BY position ASC',
-    [sectionId]
+    'SELECT * FROM blocks WHERE note_id = ? ORDER BY "order" ASC',
+    [noteId]
   );
 }
 
 export async function createBlock(
-  sectionId: number,
+  noteId: number,
   type: BlockType,
-  position: number,
+  order: number,
   content: string | null = null
 ): Promise<number> {
   const db = await getDatabase();
+  const now = new Date().toISOString();
   const result = await db.runAsync(
-    'INSERT INTO blocks (section_id, type, content, position) VALUES (?, ?, ?, ?)',
-    [sectionId, type, content, position]
+    'INSERT INTO blocks (note_id, type, content, "order", created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [noteId, type, content, order, now, now]
   );
   return result.lastInsertRowId;
 }
 
 export async function updateBlockContent(id: number, content: string | null): Promise<void> {
   const db = await getDatabase();
-  await db.runAsync('UPDATE blocks SET content = ? WHERE id = ?', [content, id]);
+  const now = new Date().toISOString();
+  await db.runAsync('UPDATE blocks SET content = ?, updated_at = ? WHERE id = ?', [content, now, id]);
+}
+
+export async function transformBlockType(
+  id: number,
+  newType: BlockType,
+  newContent: string | null
+): Promise<void> {
+  const db = await getDatabase();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    'UPDATE blocks SET type = ?, content = ?, updated_at = ? WHERE id = ?',
+    [newType, newContent, now, id]
+  );
 }
 
 export async function deleteBlock(id: number): Promise<void> {
@@ -54,19 +71,58 @@ export async function deleteBlock(id: number): Promise<void> {
 }
 
 export function parseChecklistContent(content: string | null): ChecklistItem[] {
-  if (!content) return [];
+  if (!content) return [{ id: 1, text: '', done: false }];
   try {
-    return JSON.parse(content);
+    const items = JSON.parse(content);
+    return Array.isArray(items) && items.length > 0 ? items : [{ id: 1, text: '', done: false }];
   } catch {
-    return [];
+    return [{ id: 1, text: '', done: false }];
   }
 }
 
 export function parseListContent(content: string | null): ListItem[] {
-  if (!content) return [];
+  if (!content) return [{ id: 1, text: '' }];
   try {
-    return JSON.parse(content);
+    const items = JSON.parse(content);
+    return Array.isArray(items) && items.length > 0 ? items : [{ id: 1, text: '' }];
   } catch {
-    return [];
+    return [{ id: 1, text: '' }];
   }
+}
+
+/**
+ * Convert plain text content to checklist JSON format.
+ * Each line becomes a checklist item.
+ */
+export function textToChecklistContent(text: string | null): string {
+  if (!text || !text.trim()) {
+    return JSON.stringify([{ id: 1, text: '', done: false }]);
+  }
+  const lines = text.split('\n').filter((line) => line.trim());
+  const items: ChecklistItem[] = lines.map((line, index) => ({
+    id: index + 1,
+    text: line.trim(),
+    done: false,
+  }));
+  return items.length > 0
+    ? JSON.stringify(items)
+    : JSON.stringify([{ id: 1, text: '', done: false }]);
+}
+
+/**
+ * Convert plain text content to list JSON format.
+ * Each line becomes a list item.
+ */
+export function textToListContent(text: string | null): string {
+  if (!text || !text.trim()) {
+    return JSON.stringify([{ id: 1, text: '' }]);
+  }
+  const lines = text.split('\n').filter((line) => line.trim());
+  const items: ListItem[] = lines.map((line, index) => ({
+    id: index + 1,
+    text: line.trim(),
+  }));
+  return items.length > 0
+    ? JSON.stringify(items)
+    : JSON.stringify([{ id: 1, text: '' }]);
 }

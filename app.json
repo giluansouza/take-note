@@ -1,10 +1,14 @@
 {
   "expo": {
-    "name": "tome-nota",
-    "slug": "tome-nota",
+    "name": "take-note",
+    "slug": "take-note",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "scheme": "tomenota",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

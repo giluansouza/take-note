@@ -37,6 +37,10 @@ export default {
     addSection: '+ Add Section',
     sectionTitle: 'Section title',
     sectionSubtitle: 'Subtitle (optional)',
+    addSectionHeader: 'Add section',
+    deleteSectionTitle: 'Delete section?',
+    deleteSectionMessage: 'This will remove the section and its blocks.',
+    deleteSectionConfirm: 'Delete section',
     addBlock: '+ Add Block',
     text: 'Text',
     checklist: 'Checklist',
@@ -44,6 +48,19 @@ export default {
     enterText: 'Enter text...',
     addItem: '+ Add item',
     item: 'Item',
+    archivedNotice: 'Note archived',
+    undo: 'Undo',
+  },
+
+  blocks: {
+    blockType: 'Block type',
+    text: 'Text',
+    title: 'Title',
+    subtitle: 'Subtitle',
+    quote: 'Quote',
+    list: 'List',
+    checklist: 'Checklist',
+    insertBelow: 'Insert below',
   },
 
   categories: {
@@ -63,10 +80,11 @@ export default {
     skip: 'Skip',
     addSelected: 'Add Selected',
     noNotesAvailable: 'No notes available to add',
+    reorderList: 'Reorder list',
   },
 
   archived: {
-    title: 'Archived',
+    title: 'Archived notes',
     noArchived: 'No archived notes',
     deleteConfirmTitle: 'Delete Permanently?',
     deleteConfirmMessage: 'This note will be permanently deleted. This action cannot be undone.',
@@ -86,5 +104,19 @@ export default {
   languages: {
     en: 'English',
     'pt-BR': 'Português (Brasil)',
+  },
+
+  blocks: {
+    blockType: 'Block type',
+    text: 'Text',
+    title: 'Title',
+    subtitle: 'Subtitle',
+    quote: 'Quote',
+    list: 'List',
+    checklist: 'Checklist',
+    insertBelow: 'Insert below',
+    delete: 'Delete block',
+    deleted: 'Block deleted',
+    undo: 'Undo',
   },
 };

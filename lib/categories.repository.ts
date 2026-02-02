@@ -50,6 +50,18 @@ export async function deleteCategory(id: number): Promise<void> {
   await db.runAsync('DELETE FROM categories WHERE id = ?', [id]);
 }
 
+export async function updateCategoryPositions(
+  updates: { id: number; position: number }[]
+): Promise<void> {
+  const db = await getDatabase();
+  for (const update of updates) {
+    await db.runAsync(
+      'UPDATE categories SET position = ? WHERE id = ?',
+      [update.position, update.id]
+    );
+  }
+}
+
 export async function getCategoryNoteCount(categoryId: number): Promise<number> {
   const db = await getDatabase();
   const result = await db.getFirstAsync<{ count: number }>(
