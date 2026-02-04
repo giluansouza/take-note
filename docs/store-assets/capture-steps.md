@@ -20,6 +20,7 @@ Objetivo: gerar 8 screenshots em 10-15 minutos sem retrabalho.
 Siga `shots.md` na ordem 1->8.
 
 Regras:
+
 - Sempre esperar 300-500ms apos abrir a tela antes de capturar (evita flicker).
 - Sem teclado: toque em uma area neutra para fechar.
 - Evitar estados "vazios" (lista sem notas, archived vazio).
@@ -27,6 +28,7 @@ Regras:
 ## 3) Export e nomeacao
 
 Sugestao de nomes:
+
 - `shot-01-home.png`
 - `shot-02-empty-note.png`
 - `shot-03-blocks.png`
@@ -36,3 +38,7 @@ Sugestao de nomes:
 - `shot-07-categories.png`
 - `shot-08-archived.png`
 
+- [Inicio](./README.md)
+- [Roteiro de screenshots (8x)](./shots.md)
+- [Copy para screenshots](./copy.md)
+- [Mock data (notas e categorias)](./mock-data.md)

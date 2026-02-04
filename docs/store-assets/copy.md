@@ -23,3 +23,8 @@ Regra: 4-6 palavras. Sem pontuacao longa. Mesmo padrao em todos.
 6. "Photos inside your notes."
 7. "Stay organized by category."
 8. "Archive what you finished."
+
+- [Inicio](./README.md)
+- [Roteiro de screenshots (8x)](./shots.md)
+- [Passo a passo (captura rapida)](./capture-steps.md)
+- [Mock data (notas e categorias)](./mock-data.md)

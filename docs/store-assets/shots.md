@@ -3,6 +3,7 @@
 Objetivo: cobrir o fluxo principal e diferenciar o app por "offline-first + blocos".
 
 Padrao visual sugerido:
+
 - Header sempre visivel (preto)
 - Sem teclado
 - Conteudo centralizado, sem telas vazias
@@ -13,11 +14,13 @@ Padrao visual sugerido:
 Tela: `app/index`
 
 Checklist:
+
 - 8+ notas visiveis (scroll ok)
 - Pelo menos 2 categorias diferentes
 - Um preview de nota visivel
 
 Copy sugerida:
+
 - PT: "Notas rapidas, sem complicacao"
 - EN: "Fast notes. No friction."
 
@@ -26,11 +29,13 @@ Copy sugerida:
 Tela: `app/note/[id]` (nota vazia)
 
 Checklist:
+
 - Titulo vazio (ou placeholder)
 - Apenas 1 bloco de texto vazio
 - Placeholder com "/ para comandos" aparece
 
 Copy sugerida:
+
 - PT: "Digite. Use / para blocos"
 - EN: "Type. Use / for blocks"
 
@@ -39,6 +44,7 @@ Copy sugerida:
 Tela: `app/note/[id]`
 
 Checklist:
+
 - Nota com:
   - title
   - subtitle
@@ -47,6 +53,7 @@ Checklist:
 - Conteudo curto e realista
 
 Copy sugerida:
+
 - PT: "Blocos para cada ideia"
 - EN: "Blocks for every idea"
 
@@ -55,10 +62,12 @@ Copy sugerida:
 Tela: `app/note/[id]` (checklist)
 
 Checklist:
+
 - 5-8 itens
 - 2 itens marcados
 
 Copy sugerida:
+
 - PT: "Checklists sem friccao"
 - EN: "Checklists made easy"
 
@@ -67,10 +76,12 @@ Copy sugerida:
 Tela: `app/note/[id]` (lista)
 
 Checklist:
+
 - 5-8 itens
 - Sem teclado
 
 Copy sugerida:
+
 - PT: "Listas em segundos"
 - EN: "Lists in seconds"
 
@@ -79,10 +90,12 @@ Copy sugerida:
 Tela: `app/note/[id]` (imagem)
 
 Checklist:
+
 - 1 imagem grande (thumbnail ok)
 - Texto abaixo explicando (1-2 linhas)
 
 Copy sugerida:
+
 - PT: "Adicione fotos as notas"
 - EN: "Add photos to notes"
 
@@ -91,10 +104,12 @@ Copy sugerida:
 Tela: `app/index`
 
 Checklist:
+
 - Categoria selecionada no topo
 - Lista filtrada visivel
 
 Copy sugerida:
+
 - PT: "Organize por categorias"
 - EN: "Organize with categories"
 
@@ -103,10 +118,16 @@ Copy sugerida:
 Tela: `app/archived`
 
 Checklist:
+
 - 3+ notas arquivadas
 - Datas/titulos ok
 
 Copy sugerida:
+
 - PT: "Arquive e recupere"
 - EN: "Archive and restore"
 
+- [Inicio](./README.md)
+- [Copy para screenshots](./copy.md)
+- [Passo a passo (captura rapida)](./capture-steps.md)
+- [Mock data (notas e categorias)](./mock-data.md)

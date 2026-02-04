@@ -7,6 +7,7 @@ Este diretorio e um guia rapido para voce produzir screenshots consistentes para
 - [Roteiro de screenshots (8x)](./shots.md)
 - [Copy para screenshots](./copy.md)
 - [Passo a passo (captura rapida)](./capture-steps.md)
+- [Mock data (notas e categorias)](./mock-data.md)
 
 ## Recomendacao
 
