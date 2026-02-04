@@ -2,6 +2,12 @@
 
 Este diretorio e um guia rapido para voce produzir screenshots consistentes para a Play Store.
 
+## Navegacao
+
+- [Roteiro de screenshots (8x)](./shots.md)
+- [Copy para screenshots](./copy.md)
+- [Passo a passo (captura rapida)](./capture-steps.md)
+
 ## Recomendacao
 
 - Quantidade: 8 screenshots (phone)
@@ -35,4 +41,3 @@ Se voce for colocar copy por cima das screenshots (ex: no Canva/Figma), use `cop
 - Exportar PNG
 - Mesma resolucao para todas
 - Mesmo padding/margens de copy
-
