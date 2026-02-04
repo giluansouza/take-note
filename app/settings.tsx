@@ -3,6 +3,7 @@ import {
   getCurrentLanguage,
   setLanguage,
 } from "@/lib/i18n";
+import { useTheme, ThemeMode } from "@/lib/theme";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
@@ -19,13 +20,23 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const PRIVACY_POLICY_URL = "https://example.com/privacy";
-const TERMS_OF_SERVICE_URL = "https://example.com/terms";
+const PRIVACY_POLICY_URL =
+  "https://giluansouza.github.io/take-note/privacy-policy.html";
+const TERMS_OF_SERVICE_URL =
+  "https://giluansouza.github.io/take-note/terms-and-conditions.html";
+
+const THEME_OPTIONS: { mode: ThemeMode; labelKey: string }[] = [
+  { mode: "system", labelKey: "settings.themeSystem" },
+  { mode: "light", labelKey: "settings.themeLight" },
+  { mode: "dark", labelKey: "settings.themeDark" },
+];
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
+  const { mode, setMode, colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+  const [showThemePicker, setShowThemePicker] = useState(false);
   const currentLanguage = getCurrentLanguage();
 
   const handleBack = () => {
@@ -35,6 +46,11 @@ export default function SettingsScreen() {
   const handleLanguageSelect = async (languageCode: string) => {
     await setLanguage(languageCode);
     setShowLanguagePicker(false);
+  };
+
+  const handleThemeSelect = async (newMode: ThemeMode) => {
+    await setMode(newMode);
+    setShowThemePicker(false);
   };
 
   const handleOpenPrivacyPolicy = () => {
@@ -48,60 +64,84 @@ export default function SettingsScreen() {
   const handleOpenArchived = () => {
     router.push("/archived");
   };
+
   const getCurrentLanguageName = () => {
     const lang = availableLanguages.find((l) => l.code === currentLanguage);
     return lang?.nativeName || "English";
   };
 
+  const getCurrentThemeName = () => {
+    const option = THEME_OPTIONS.find((o) => o.mode === mode);
+    return option ? t(option.labelKey) : t("settings.themeSystem");
+  };
+
   const appVersion = Constants.expoConfig?.version || "1.0.0";
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={styles.backText}>{"<"} {t("common.back")}</Text>
+          <Text style={[styles.backText, { color: colors.headerText }]}>
+            {"<"} {t("common.back")}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("settings.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>{t("settings.title")}</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.section}>
+        <View style={[styles.section, { borderColor: colors.border, backgroundColor: colors.background }]}>
           <TouchableOpacity
-            style={styles.row}
+            style={[styles.row, { borderBottomColor: colors.border }]}
             onPress={() => setShowLanguagePicker(true)}
           >
-            <Text style={styles.rowLabel}>{t("settings.language")}</Text>
-            <Text style={styles.rowValue}>{getCurrentLanguageName()}</Text>
+            <Text style={[styles.rowLabel, { color: colors.text }]}>{t("settings.language")}</Text>
+            <Text style={[styles.rowValue, { color: colors.textMuted }]}>{getCurrentLanguageName()}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row} onPress={handleOpenArchived}>
-            <Text style={styles.rowLabel}>{t("archived.title")}</Text>
-            <Text style={styles.rowArrow}>{">"}</Text>
+          <TouchableOpacity
+            style={[styles.row, { borderBottomColor: colors.border }]}
+            onPress={() => setShowThemePicker(true)}
+          >
+            <Text style={[styles.rowLabel, { color: colors.text }]}>{t("settings.theme")}</Text>
+            <Text style={[styles.rowValue, { color: colors.textMuted }]}>{getCurrentThemeName()}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.row, { borderBottomColor: colors.border }]} onPress={handleOpenArchived}>
+            <Text style={[styles.rowLabel, { color: colors.text }]}>{t("archived.title")}</Text>
+            <Text style={[styles.rowArrow, { color: colors.placeholder }]}>{">"}</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("settings.about")}</Text>
+        <View style={[styles.section, { borderColor: colors.border, backgroundColor: colors.background }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>{t("settings.about")}</Text>
 
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>{t("settings.version")}</Text>
-            <Text style={styles.rowValue}>{appVersion}</Text>
+          <View style={[styles.row, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.rowLabel, { color: colors.text }]}>{t("settings.version")}</Text>
+            <Text style={[styles.rowValue, { color: colors.textMuted }]}>{appVersion}</Text>
           </View>
 
-          <TouchableOpacity style={styles.row} onPress={handleOpenPrivacyPolicy}>
-            <Text style={styles.rowLabel}>{t("settings.privacyPolicy")}</Text>
-            <Text style={styles.rowArrow}>{">"}</Text>
+          <TouchableOpacity
+            style={[styles.row, { borderBottomColor: colors.border }]}
+            onPress={handleOpenPrivacyPolicy}
+          >
+            <Text style={[styles.rowLabel, { color: colors.text }]}>{t("settings.privacyPolicy")}</Text>
+            <Text style={[styles.rowArrow, { color: colors.placeholder }]}>{">"}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.row} onPress={handleOpenTermsOfService}>
-            <Text style={styles.rowLabel}>{t("settings.termsOfService")}</Text>
-            <Text style={styles.rowArrow}>{">"}</Text>
+          <TouchableOpacity
+            style={[styles.row, { borderBottomColor: colors.border }]}
+            onPress={handleOpenTermsOfService}
+          >
+            <Text style={[styles.rowLabel, { color: colors.text }]}>{t("settings.termsOfService")}</Text>
+            <Text style={[styles.rowArrow, { color: colors.placeholder }]}>{">"}</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.appDescription}>{t("settings.appDescription")}</Text>
+        <Text style={[styles.appDescription, { color: colors.textMuted }]}>
+          {t("settings.appDescription")}
+        </Text>
       </ScrollView>
 
+      {/* Language Picker Modal */}
       <Modal
         visible={showLanguagePicker}
         transparent
@@ -109,27 +149,31 @@ export default function SettingsScreen() {
         onRequestClose={() => setShowLanguagePicker(false)}
       >
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
           onPress={() => setShowLanguagePicker(false)}
         >
-          <Pressable style={styles.modalContent} onPress={() => {}}>
-            <Text style={styles.modalTitle}>{t("settings.selectLanguage")}</Text>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.modalBackground }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {t("settings.selectLanguage")}
+            </Text>
             {availableLanguages.map((lang) => (
               <TouchableOpacity
                 key={lang.code}
-                style={styles.languageOption}
+                style={[styles.languageOption, { borderBottomColor: colors.border }]}
                 onPress={() => handleLanguageSelect(lang.code)}
               >
                 <Text
                   style={[
                     styles.languageText,
-                    currentLanguage === lang.code && styles.languageTextSelected,
+                    { color: colors.text },
+                    currentLanguage === lang.code &&
+                      styles.languageTextSelected,
                   ]}
                 >
                   {lang.nativeName}
                 </Text>
                 {currentLanguage === lang.code && (
-                  <Text style={styles.checkmark}>✓</Text>
+                  <Text style={[styles.checkmark, { color: colors.text }]}>✓</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -137,7 +181,52 @@ export default function SettingsScreen() {
               style={styles.cancelButton}
               onPress={() => setShowLanguagePicker(false)}
             >
-              <Text style={styles.cancelText}>{t("common.cancel")}</Text>
+              <Text style={[styles.cancelText, { color: colors.textMuted }]}>{t("common.cancel")}</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Theme Picker Modal */}
+      <Modal
+        visible={showThemePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowThemePicker(false)}
+      >
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
+          onPress={() => setShowThemePicker(false)}
+        >
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.modalBackground }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {t("settings.selectTheme")}
+            </Text>
+            {THEME_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.mode}
+                style={[styles.languageOption, { borderBottomColor: colors.border }]}
+                onPress={() => handleThemeSelect(option.mode)}
+              >
+                <Text
+                  style={[
+                    styles.languageText,
+                    { color: colors.text },
+                    mode === option.mode && styles.languageTextSelected,
+                  ]}
+                >
+                  {t(option.labelKey)}
+                </Text>
+                {mode === option.mode && (
+                  <Text style={[styles.checkmark, { color: colors.text }]}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowThemePicker(false)}
+            >
+              <Text style={[styles.cancelText, { color: colors.textMuted }]}>{t("common.cancel")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -149,7 +238,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -157,7 +245,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: "#000",
   },
   backButton: {
     paddingVertical: 4,
@@ -165,12 +252,10 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: "#fff",
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#fff",
   },
   placeholder: {
     width: 60,
@@ -182,13 +267,10 @@ const styles = StyleSheet.create({
     marginTop: 24,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: "#e0e0e0",
-    backgroundColor: "#fff",
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#888",
     textTransform: "uppercase",
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -201,23 +283,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
   },
   rowLabel: {
     fontSize: 16,
-    color: "#000",
   },
   rowValue: {
     fontSize: 16,
-    color: "#888",
   },
   rowArrow: {
     fontSize: 16,
-    color: "#ccc",
   },
   appDescription: {
     fontSize: 14,
-    color: "#888",
     textAlign: "center",
     paddingHorizontal: 32,
     paddingVertical: 24,
@@ -225,12 +302,10 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
     width: "80%",
@@ -240,7 +315,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#000",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -250,18 +324,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
   },
   languageText: {
     fontSize: 16,
-    color: "#000",
   },
   languageTextSelected: {
     fontWeight: "600",
   },
   checkmark: {
     fontSize: 16,
-    color: "#000",
   },
   cancelButton: {
     marginTop: 16,
@@ -270,6 +341,5 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 16,
-    color: "#888",
   },
 });

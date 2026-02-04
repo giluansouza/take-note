@@ -15,6 +15,7 @@ import {
   parseListContent,
   ListItem,
 } from '@/lib/blocks.repository';
+import { useTheme } from '@/lib/theme';
 import { BlockTypeMenu } from './BlockTypeMenu';
 
 interface ListBlockProps {
@@ -36,6 +37,7 @@ export function ListBlock({
   onInsertBlockBelow,
   onDelete,
 }: ListBlockProps) {
+  const { colors } = useTheme();
   const [items, setItems] = useState<ListItem[]>(() =>
     parseListContent(block.content)
   );
@@ -148,15 +150,15 @@ export function ListBlock({
           onDelete={onDelete}
         />
       )}
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: colors.backgroundTertiary }]}>
         {items.map((item, index) => (
           <View key={item.id} style={styles.itemRow}>
-            <Text style={styles.bullet}>•</Text>
+            <Text style={[styles.bullet, { color: colors.textTertiary }]}>•</Text>
             <TextInput
               ref={(ref) => {
                 if (ref) inputRefs.current.set(item.id, ref);
               }}
-              style={styles.itemText}
+              style={[styles.itemText, { color: colors.text }]}
               value={item.text}
               onChangeText={(text) => handleTextChange(item.id, text)}
               onKeyPress={(e) => handleKeyPress(item.id, e)}
@@ -164,13 +166,13 @@ export function ListBlock({
               onFocus={handleFocus}
               onBlur={handleBlur}
               placeholder="Item"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.placeholder}
               blurOnSubmit={false}
             />
           </View>
         ))}
         <TouchableOpacity style={styles.addItem} onPress={handleAddItem}>
-          <Text style={styles.addItemText}>+ Add item</Text>
+          <Text style={[styles.addItemText, { color: colors.textTertiary }]}>+ Add item</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -185,7 +187,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: '#fafafa',
     borderRadius: 4,
     padding: 8,
   },
@@ -196,14 +197,12 @@ const styles = StyleSheet.create({
   },
   bullet: {
     fontSize: 16,
-    color: '#666',
     marginRight: 8,
     width: 12,
   },
   itemText: {
     flex: 1,
     fontSize: 15,
-    color: '#000',
     padding: 4,
   },
   addItem: {
@@ -211,6 +210,5 @@ const styles = StyleSheet.create({
   },
   addItemText: {
     fontSize: 14,
-    color: '#666',
   },
 });

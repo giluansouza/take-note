@@ -83,6 +83,11 @@ export default {
     title: 'Settings',
     language: 'Language',
     selectLanguage: 'Select Language',
+    theme: 'Theme',
+    selectTheme: 'Select Theme',
+    themeSystem: 'System',
+    themeLight: 'Light',
+    themeDark: 'Dark',
     about: 'About',
     version: 'Version',
     privacyPolicy: 'Privacy Policy',
@@ -104,6 +109,7 @@ export default {
     list: 'List',
     checklist: 'Checklist',
     image: 'Image',
+    textPlaceholderWithSlash: 'Type... (/ for commands)',
     insertBelow: 'Insert below',
     insertImage: 'Insert image',
     delete: 'Delete block',
@@ -112,5 +118,11 @@ export default {
     addImage: 'Add Image',
     fromCamera: 'Take Photo',
     fromGallery: 'Choose from Gallery',
+  },
+
+  hints: {
+    slashTip: 'Tip: use / to insert a block',
+    listShortcut: 'Tip: create lists by typing - + space',
+    checklistShortcut: 'Tip: create checklists by typing [] + space',
   },
 };

@@ -83,6 +83,11 @@ export default {
     title: 'Configurações',
     language: 'Idioma',
     selectLanguage: 'Selecionar Idioma',
+    theme: 'Tema',
+    selectTheme: 'Selecionar Tema',
+    themeSystem: 'Sistema',
+    themeLight: 'Claro',
+    themeDark: 'Escuro',
     about: 'Sobre',
     version: 'Versão',
     privacyPolicy: 'Política de Privacidade',
@@ -104,6 +109,7 @@ export default {
     list: 'Lista',
     checklist: 'Checklist',
     image: 'Imagem',
+    textPlaceholderWithSlash: 'Digite... ( / para comandos )',
     insertBelow: 'Inserir abaixo',
     insertImage: 'Inserir imagem',
     delete: 'Excluir bloco',
@@ -112,5 +118,11 @@ export default {
     addImage: 'Adicionar Imagem',
     fromCamera: 'Tirar Foto',
     fromGallery: 'Escolher da Galeria',
+  },
+
+  hints: {
+    slashTip: 'Dica: use / para inserir um bloco',
+    listShortcut: 'Dica: crie listas digitando - + espaco',
+    checklistShortcut: 'Dica: crie checklists digitando [] + espaco',
   },
 };

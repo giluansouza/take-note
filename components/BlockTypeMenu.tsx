@@ -1,6 +1,7 @@
 import { BlockType } from "@/lib/blocks.repository";
+import { useTheme } from "@/lib/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Modal,
@@ -18,24 +19,58 @@ interface BlockTypeMenuProps {
   onDelete?: () => void;
 }
 
-const BLOCK_TYPES: { type: BlockType; icon: string; labelKey: string }[] = [
+export type BlockTypeMenuHandle = {
+  open: () => void;
+  close: () => void;
+};
+
+const BLOCK_TYPES: {
+  type: BlockType;
+  icon: string;
+  labelKey: string;
+  shortcut?: string;
+}[] = [
   { type: "text", icon: "text-outline", labelKey: "blocks.text" },
-  { type: "title", icon: "text", labelKey: "blocks.title" },
-  { type: "subtitle", icon: "text-sharp", labelKey: "blocks.subtitle" },
-  { type: "quote", icon: "chatbox-ellipses-outline", labelKey: "blocks.quote" },
-  { type: "list", icon: "list-outline", labelKey: "blocks.list" },
-  { type: "checklist", icon: "checkbox-outline", labelKey: "blocks.checklist" },
+  { type: "title", icon: "text", labelKey: "blocks.title", shortcut: "# " },
+  {
+    type: "subtitle",
+    icon: "text-sharp",
+    labelKey: "blocks.subtitle",
+    shortcut: "## ",
+  },
+  {
+    type: "quote",
+    icon: "chatbox-ellipses-outline",
+    labelKey: "blocks.quote",
+    shortcut: "> ",
+  },
+  { type: "list", icon: "list-outline", labelKey: "blocks.list", shortcut: "- " },
+  {
+    type: "checklist",
+    icon: "checkbox-outline",
+    labelKey: "blocks.checklist",
+    shortcut: "[] ",
+  },
   { type: "image", icon: "image-outline", labelKey: "blocks.image" },
 ];
 
-export function BlockTypeMenu({
-  currentType,
-  onSelectType,
-  onInsertBelow,
-  onDelete,
-}: BlockTypeMenuProps) {
+export const BlockTypeMenu = forwardRef<BlockTypeMenuHandle, BlockTypeMenuProps>(
+  function BlockTypeMenu(
+    { currentType, onSelectType, onInsertBelow, onDelete }: BlockTypeMenuProps,
+    ref,
+  ) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const [visible, setVisible] = useState(false);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      open: () => setVisible(true),
+      close: () => setVisible(false),
+    }),
+    [],
+  );
 
   const handleSelect = (type: BlockType) => {
     setVisible(false);
@@ -77,7 +112,7 @@ export function BlockTypeMenu({
         <Ionicons
           name={(currentTypeInfo?.icon as any) || "text-outline"}
           size={14}
-          color="#bbb"
+          color={colors.placeholder}
         />
       </TouchableOpacity>
 
@@ -87,17 +122,27 @@ export function BlockTypeMenu({
         animationType="fade"
         onRequestClose={() => setVisible(false)}
       >
-        <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
-          <Pressable style={styles.menu} onPress={() => {}}>
+        <Pressable
+          style={[styles.overlay, { backgroundColor: colors.modalOverlay }]}
+          onPress={() => setVisible(false)}
+        >
+          <Pressable
+            style={[styles.menu, { backgroundColor: colors.modalBackground }]}
+            onPress={() => {}}
+          >
             {!isImageBlock && (
               <>
-                <Text style={styles.menuTitle}>{t("blocks.blockType")}</Text>
+                <Text style={[styles.menuTitle, { color: colors.placeholder }]}>
+                  {t("blocks.blockType")}
+                </Text>
                 {transformableTypes.map((item) => (
                   <TouchableOpacity
                     key={item.type}
                     style={[
                       styles.menuItem,
-                      currentType === item.type && styles.menuItemActive,
+                      currentType === item.type && {
+                        backgroundColor: colors.backgroundSecondary,
+                      },
                     ]}
                     onPress={() => handleTypePress(item.type)}
                   >
@@ -105,20 +150,41 @@ export function BlockTypeMenu({
                       <Ionicons
                         name={item.icon as any}
                         size={16}
-                        color={currentType === item.type ? "#000" : "#666"}
+                        color={
+                          currentType === item.type
+                            ? colors.text
+                            : colors.textTertiary
+                        }
                       />
                     </View>
                     <Text
                       style={[
                         styles.menuItemLabel,
-                        currentType === item.type && styles.menuItemTextActive,
+                        { color: colors.textSecondary },
+                        currentType === item.type && {
+                          color: colors.text,
+                          fontWeight: "600",
+                        },
                       ]}
                     >
                       {t(item.labelKey)}
                     </Text>
-                    {currentType === item.type && (
-                      <Text style={styles.checkmark}>✓</Text>
-                    )}
+                    <View style={styles.menuItemRight}>
+                      {!!item.shortcut && (
+                        <Text
+                          style={[styles.shortcut, { color: colors.textTertiary }]}
+                        >
+                          {item.shortcut}
+                        </Text>
+                      )}
+                      {currentType === item.type && (
+                        <Text
+                          style={[styles.checkmark, { color: colors.primary }]}
+                        >
+                          ✓
+                        </Text>
+                      )}
+                    </View>
                   </TouchableOpacity>
                 ))}
                 {onInsertBelow && (
@@ -127,9 +193,18 @@ export function BlockTypeMenu({
                     onPress={() => handleTypePress("image")}
                   >
                     <View style={styles.menuItemIcon}>
-                      <Ionicons name="image-outline" size={16} color="#666" />
+                      <Ionicons
+                        name="image-outline"
+                        size={16}
+                        color={colors.textTertiary}
+                      />
                     </View>
-                    <Text style={styles.menuItemLabel}>
+                    <Text
+                      style={[
+                        styles.menuItemLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {t("blocks.image")}
                     </Text>
                   </TouchableOpacity>
@@ -137,34 +212,45 @@ export function BlockTypeMenu({
               </>
             )}
 
-            {onInsertBelow && (
+            {/* {onInsertBelow && (
               <>
-                <View style={styles.separator} />
+                <View style={[styles.separator, { backgroundColor: colors.borderLight }]} />
                 <TouchableOpacity
                   style={styles.menuItem}
                   onPress={() => handleInsertBelow()}
                 >
                   <View style={styles.menuItemIcon}>
-                    <Ionicons name="add-outline" size={16} color="#666" />
+                    <Ionicons name="add-outline" size={16} color={colors.textTertiary} />
                   </View>
-                  <Text style={styles.menuItemLabel}>
+                  <Text style={[styles.menuItemLabel, { color: colors.textSecondary }]}>
                     {t("blocks.insertBelow")}
                   </Text>
                 </TouchableOpacity>
               </>
-            )}
+            )} */}
 
             {onDelete && (
               <>
-                <View style={styles.separator} />
+                <View
+                  style={[
+                    styles.separator,
+                    { backgroundColor: colors.borderLight },
+                  ]}
+                />
                 <TouchableOpacity
                   style={styles.menuItem}
                   onPress={handleDelete}
                 >
                   <View style={styles.menuItemIcon}>
-                    <Ionicons name="trash-outline" size={16} color="#d32f2f" />
+                    <Ionicons
+                      name="trash-outline"
+                      size={16}
+                      color={colors.danger}
+                    />
                   </View>
-                  <Text style={[styles.menuItemLabel, styles.deleteText]}>
+                  <Text
+                    style={[styles.menuItemLabel, { color: colors.danger }]}
+                  >
                     {t("blocks.delete")}
                   </Text>
                 </TouchableOpacity>
@@ -175,7 +261,8 @@ export function BlockTypeMenu({
       </Modal>
     </>
   );
-}
+  },
+);
 
 const styles = StyleSheet.create({
   trigger: {
@@ -186,17 +273,14 @@ const styles = StyleSheet.create({
   },
   triggerText: {
     fontSize: 12,
-    color: "#bbb",
     fontWeight: "500",
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
     justifyContent: "center",
     alignItems: "center",
   },
   menu: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 8,
     minWidth: 180,
@@ -208,7 +292,6 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 12,
-    color: "#999",
     fontWeight: "600",
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -221,9 +304,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
-  menuItemActive: {
-    backgroundColor: "#f5f5f5",
-  },
   menuItemIcon: {
     width: 28,
     alignItems: "center",
@@ -231,24 +311,23 @@ const styles = StyleSheet.create({
   },
   menuItemLabel: {
     fontSize: 15,
-    color: "#333",
     flex: 1,
   },
-  menuItemTextActive: {
-    color: "#000",
-    fontWeight: "600",
+  menuItemRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-  deleteText: {
-    color: "#d32f2f",
+  shortcut: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   checkmark: {
     fontSize: 14,
-    color: "#007AFF",
     fontWeight: "600",
   },
   separator: {
     height: 1,
-    backgroundColor: "#eee",
     marginVertical: 8,
     marginHorizontal: 16,
   },

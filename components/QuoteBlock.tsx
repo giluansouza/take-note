@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { Block, updateBlockContent, BlockType } from '@/lib/blocks.repository';
+import { useTheme } from '@/lib/theme';
 import { BlockTypeMenu } from './BlockTypeMenu';
 
 interface QuoteBlockProps {
@@ -22,6 +23,7 @@ export function QuoteBlock({
   onInsertBlockBelow,
   onDelete,
 }: QuoteBlockProps) {
+  const { colors } = useTheme();
   const [content, setContent] = useState(block.content || '');
   const [isFocused, setIsFocused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,15 +73,15 @@ export function QuoteBlock({
           onDelete={onDelete}
         />
       )}
-      <View style={styles.quoteBorder} />
+      <View style={[styles.quoteBorder, { backgroundColor: colors.quoteBorder }]} />
       <TextInput
         ref={inputRef}
-        style={styles.input}
+        style={[styles.input, { color: colors.quoteText }]}
         value={content}
         onChangeText={handleContentChange}
         onSubmitEditing={handleSubmitEditing}
         placeholder="Quote"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.placeholder}
         onFocus={handleFocus}
         onBlur={handleBlur}
         blurOnSubmit={false}
@@ -97,7 +99,6 @@ const styles = StyleSheet.create({
   },
   quoteBorder: {
     width: 3,
-    backgroundColor: '#e0e0e0',
     marginRight: 8,
     alignSelf: 'stretch',
     borderRadius: 4,
@@ -105,7 +106,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#555',
     fontStyle: 'italic',
     padding: 8,
     borderRadius: 4,

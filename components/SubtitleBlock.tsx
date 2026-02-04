@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { Block, updateBlockContent, BlockType } from '@/lib/blocks.repository';
+import { useTheme } from '@/lib/theme';
 import { BlockTypeMenu } from './BlockTypeMenu';
 
 interface SubtitleBlockProps {
@@ -22,6 +23,7 @@ export function SubtitleBlock({
   onInsertBlockBelow,
   onDelete,
 }: SubtitleBlockProps) {
+  const { colors } = useTheme();
   const [content, setContent] = useState(block.content || '');
   const [isFocused, setIsFocused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,12 +75,12 @@ export function SubtitleBlock({
       )}
       <TextInput
         ref={inputRef}
-        style={styles.input}
+        style={[styles.input, { color: colors.textSecondary }]}
         value={content}
         onChangeText={handleContentChange}
         onSubmitEditing={handleSubmitEditing}
         placeholder="Subtitle"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.placeholder}
         onFocus={handleFocus}
         onBlur={handleBlur}
         blurOnSubmit={false}
@@ -98,7 +100,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     padding: 8,
     borderRadius: 4,
     minHeight: 40,

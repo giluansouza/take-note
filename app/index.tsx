@@ -1,3 +1,4 @@
+import { BannerAdView } from "@/components/BannerAdView";
 import {
   Category,
   createCategory,
@@ -17,6 +18,7 @@ import {
   unarchiveNote,
 } from "@/lib/notes.repository";
 import { formatFallbackTitle } from "@/lib/title";
+import { useTheme } from "@/lib/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
@@ -58,6 +60,7 @@ const VIEW_MODE_KEY = "@notes_view_mode";
 
 export default function NotesListScreen() {
   const { t, i18n } = useTranslation();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [notes, setNotes] = useState<NoteWithPreview[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -260,10 +263,6 @@ export default function NotesListScreen() {
 
   const handleOpenSettings = () => {
     router.push("/settings");
-  };
-
-  const handleOpenArchived = () => {
-    router.push("/archived");
   };
 
   const handleCategoryPress = (category: CategoryFilter) => {
@@ -524,14 +523,14 @@ export default function NotesListScreen() {
   };
 
   const renderLeftActions = () => (
-    <View style={styles.archiveAction}>
-      <Text style={styles.actionText}>{t("notes.archive")}</Text>
+    <View style={[styles.archiveAction, { backgroundColor: colors.primary }]}>
+      <Text style={[styles.actionText, { color: colors.textInverse }]}>{t("notes.archive")}</Text>
     </View>
   );
 
   const renderRightActions = () => (
-    <View style={styles.deleteAction}>
-      <Text style={styles.actionText}>{t("notes.delete")}</Text>
+    <View style={[styles.deleteAction, { backgroundColor: colors.danger }]}>
+      <Text style={[styles.actionText, { color: colors.textInverse }]}>{t("notes.delete")}</Text>
     </View>
   );
 
@@ -561,29 +560,24 @@ export default function NotesListScreen() {
         overshootRight={false}
       >
         <TouchableOpacity
-          style={styles.noteItem}
+          style={[styles.noteItem, { backgroundColor: colors.background, borderBottomColor: colors.border }]}
           onPress={() => handleNotePress(item.id)}
           activeOpacity={0.7}
         >
           <View style={styles.noteContent}>
             <View style={styles.noteTextContent}>
-              <Text style={styles.noteTitle} numberOfLines={1}>
+              <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={1}>
                 {displayTitle}
               </Text>
               {previewText && (
-                <Text style={styles.notePreview} numberOfLines={1}>
+                <Text style={[styles.notePreview, { color: colors.textTertiary }]} numberOfLines={1}>
                   {previewText}
                 </Text>
               )}
               <View style={styles.noteMetaRow}>
-                <Text style={styles.noteDate}>{formatDate(item.created_at)}</Text>
+                <Text style={[styles.noteDate, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
                 {category && (
-                  <View
-                    style={[
-                      styles.categoryChip,
-                      // categoryColor && { borderColor: categoryColor }, // Removed border color
-                    ]}
-                  >
+                  <View style={[styles.categoryChip, { backgroundColor: colors.background }]}>
                     {categoryColor && (
                       <View
                         style={[
@@ -592,7 +586,7 @@ export default function NotesListScreen() {
                         ]}
                       />
                     )}
-                    <Text style={styles.categoryChipText}>{category.title}</Text>
+                    <Text style={[styles.categoryChipText, { color: colors.textTertiary }]}>{category.title}</Text>
                   </View>
                 )}
               </View>
@@ -613,7 +607,7 @@ export default function NotesListScreen() {
 
     return (
       <TouchableOpacity
-        style={styles.noteCard}
+        style={[styles.noteCard, { backgroundColor: colors.background, borderColor: colors.border }]}
         onPress={() => handleNotePress(item.id)}
         onLongPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -634,16 +628,16 @@ export default function NotesListScreen() {
         )}
         <View style={styles.cardContent}>
           <View>
-            <Text style={styles.cardTitle} numberOfLines={2}>
+            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
               {displayTitle || t("notes.untitled")}
             </Text>
             {previewText && (
-              <Text style={styles.cardPreview} numberOfLines={4}>
+              <Text style={[styles.cardPreview, { color: colors.textTertiary }]} numberOfLines={4}>
                 {previewText}
               </Text>
             )}
           </View>
-          <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
+          <Text style={[styles.cardDate, { color: colors.placeholder }]}>{formatDate(item.created_at)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -652,28 +646,28 @@ export default function NotesListScreen() {
   const isFiltering = searchText.trim() !== "" || selectedCategory !== "all";
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.headerTitle}>{t("notes.title")}</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.headerBackground }]}>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>{t("notes.title")}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             onPress={handleOpenSettings}
             style={styles.headerButton}
           >
-            <Ionicons name="settings-outline" size={20} color="#fff" />
+            <Ionicons name="settings-outline" size={20} color={colors.headerText} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.filterContainer}>
+      <View style={[styles.filterContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <View style={styles.searchRow}>
-          <View style={styles.searchContainer}>
+          <View style={[styles.searchContainer, { backgroundColor: colors.backgroundSecondary }]}>
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.text }]}
               value={searchText}
               onChangeText={setSearchText}
               placeholder={t("notes.searchPlaceholder")}
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.placeholder}
               returnKeyType="search"
             />
             {searchText.length > 0 && (
@@ -681,15 +675,15 @@ export default function NotesListScreen() {
                 style={styles.clearButton}
                 onPress={() => setSearchText("")}
               >
-                <Text style={styles.clearButtonText}>×</Text>
+                <Text style={[styles.clearButtonText, { color: colors.placeholder }]}>×</Text>
               </TouchableOpacity>
             )}
           </View>
-          <TouchableOpacity style={styles.viewToggle} onPress={toggleViewMode}>
+          <TouchableOpacity style={[styles.viewToggle, { backgroundColor: colors.backgroundSecondary }]} onPress={toggleViewMode}>
             <Ionicons
               name={viewMode === "list" ? "grid-outline" : "list-outline"}
               size={20}
-              color="#666"
+              color={colors.textTertiary}
             />
           </TouchableOpacity>
         </View>
@@ -702,14 +696,16 @@ export default function NotesListScreen() {
           <TouchableOpacity
             style={[
               styles.categoryBadge,
-              selectedCategory === "all" && styles.categoryBadgeSelected,
+              { backgroundColor: colors.backgroundSecondary },
+              selectedCategory === "all" && { backgroundColor: colors.backgroundInverse },
             ]}
             onPress={() => handleCategoryPress("all")}
           >
             <Text
               style={[
                 styles.categoryBadgeText,
-                selectedCategory === "all" && styles.categoryBadgeTextSelected,
+                { color: colors.textSecondary },
+                selectedCategory === "all" && { color: colors.textInverse },
               ]}
             >
               {t("categories.all")}
@@ -721,8 +717,8 @@ export default function NotesListScreen() {
               key={category.id}
               style={[
                 styles.categoryBadge,
-                selectedCategory === category.id &&
-                  styles.categoryBadgeSelected,
+                { backgroundColor: colors.backgroundSecondary },
+                selectedCategory === category.id && { backgroundColor: colors.backgroundInverse },
               ]}
               onPress={() => handleCategoryPress(category.id)}
               onLongPress={() => handleOpenCategoryOptions(category.id)}
@@ -738,8 +734,8 @@ export default function NotesListScreen() {
               <Text
                 style={[
                   styles.categoryBadgeText,
-                  selectedCategory === category.id &&
-                    styles.categoryBadgeTextSelected,
+                  { color: colors.textSecondary },
+                  selectedCategory === category.id && { color: colors.textInverse },
                 ]}
               >
                 {category.title}
@@ -751,16 +747,16 @@ export default function NotesListScreen() {
           <TouchableOpacity
             style={[
               styles.categoryBadge,
-              selectedCategory === "uncategorized" &&
-                styles.categoryBadgeSelected,
+              { backgroundColor: colors.backgroundSecondary },
+              selectedCategory === "uncategorized" && { backgroundColor: colors.backgroundInverse },
             ]}
             onPress={() => handleCategoryPress("uncategorized")}
           >
             <Text
               style={[
                 styles.categoryBadgeText,
-                selectedCategory === "uncategorized" &&
-                  styles.categoryBadgeTextSelected,
+                { color: colors.textSecondary },
+                selectedCategory === "uncategorized" && { color: colors.textInverse },
               ]}
             >
               {t("categories.uncategorized")}
@@ -769,10 +765,10 @@ export default function NotesListScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.addCategoryBadge}
+            style={[styles.addCategoryBadge, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
             onPress={handleOpenCategoryModal}
           >
-            <Text style={styles.addCategoryBadgeText}>+</Text>
+            <Text style={[styles.addCategoryBadgeText, { color: colors.textTertiary }]}>+</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -780,36 +776,42 @@ export default function NotesListScreen() {
       <FlatList
         key={viewMode}
         data={notes}
+        style={{ flex: 1 }}
         keyExtractor={(item) => item.id.toString()}
         renderItem={viewMode === "list" ? renderNote : renderNoteCard}
         numColumns={viewMode === "grid" ? 2 : 1}
-        contentContainerStyle={viewMode === "grid" ? styles.gridContent : styles.listContent}
+        contentContainerStyle={[
+          viewMode === "grid" ? styles.gridContent : styles.listContent,
+          { backgroundColor: colors.backgroundSecondary },
+        ]}
         columnWrapperStyle={viewMode === "grid" ? styles.gridRow : undefined}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
               {isFiltering ? t("notes.noNotesFiltered") : t("notes.noNotes")}
             </Text>
             {!isFiltering && (
-              <Text style={styles.emptySubtext}>{t("notes.createFirst")}</Text>
+              <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>{t("notes.createFirst")}</Text>
             )}
           </View>
         }
       />
 
+      <BannerAdView />
+
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: colors.backgroundInverse }]}
         onPress={handleCreateNote}
         activeOpacity={0.8}
       >
-        <Text style={styles.fabText}>+</Text>
+        <Text style={[styles.fabText, { color: colors.textInverse }]}>+</Text>
       </TouchableOpacity>
 
       {undoArchive && (
-        <View style={styles.undoToast}>
-          <Text style={styles.undoText}>{t("notes.archivedNotice")}</Text>
+        <View style={[styles.undoToast, { backgroundColor: colors.toastBackground }]}>
+          <Text style={[styles.undoText, { color: colors.toastText }]}>{t("notes.archivedNotice")}</Text>
           <TouchableOpacity onPress={handleUndoArchive}>
-            <Text style={styles.undoAction}>{t("notes.undo")}</Text>
+            <Text style={[styles.undoAction, { color: colors.toastAction }]}>{t("notes.undo")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -821,16 +823,16 @@ export default function NotesListScreen() {
         transparent={true}
         onRequestClose={handleCloseCategoryModal}
       >
-        <Pressable style={styles.modalOverlay} onPress={handleCloseCategoryModal}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]} onPress={handleCloseCategoryModal}>
           <Pressable
-            style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}
+            style={[styles.modalContent, { backgroundColor: colors.modalBackground, paddingBottom: insets.bottom + 20 }]}
             onPress={() => {}}
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCloseCategoryModal}>
-                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+                <Text style={[styles.modalCancelText, { color: colors.primary }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {t("categories.newCategory")}
               </Text>
               <TouchableOpacity
@@ -840,7 +842,8 @@ export default function NotesListScreen() {
                 <Text
                   style={[
                     styles.modalActionText,
-                    !newCategoryName.trim() && styles.modalActionTextDisabled,
+                    { color: colors.primary },
+                    !newCategoryName.trim() && { color: colors.placeholder },
                   ]}
                 >
                   {t("categories.create")}
@@ -849,15 +852,15 @@ export default function NotesListScreen() {
             </View>
 
             <TextInput
-              style={styles.categoryInput}
+              style={[styles.categoryInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
               value={newCategoryName}
               onChangeText={setNewCategoryName}
               placeholder={t("categories.categoryName")}
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.placeholder}
               autoFocus
             />
 
-            <Text style={styles.colorPickerLabel}>
+            <Text style={[styles.colorPickerLabel, { color: colors.textTertiary }]}>
               {t("categories.selectColor")}
             </Text>
             <View style={styles.colorPicker}>
@@ -867,7 +870,7 @@ export default function NotesListScreen() {
                   style={[
                     styles.colorOption,
                     { backgroundColor: color },
-                    selectedColor === color && styles.colorOptionSelected,
+                    selectedColor === color && [styles.colorOptionSelected, { borderColor: colors.text }],
                   ]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -880,7 +883,8 @@ export default function NotesListScreen() {
             <TouchableOpacity
               style={[
                 styles.addNotesButton,
-                !newCategoryName.trim() && styles.addNotesButtonDisabled,
+                { backgroundColor: colors.backgroundInverse },
+                !newCategoryName.trim() && { backgroundColor: colors.border },
               ]}
               onPress={handleCreateCategoryAndAddNotes}
               disabled={!newCategoryName.trim()}
@@ -888,7 +892,8 @@ export default function NotesListScreen() {
               <Text
                 style={[
                   styles.addNotesButtonText,
-                  !newCategoryName.trim() && styles.addNotesButtonTextDisabled,
+                  { color: colors.textInverse },
+                  !newCategoryName.trim() && { color: colors.placeholder },
                 ]}
               >
                 {t("categories.createAndAddNotes")}
@@ -905,34 +910,34 @@ export default function NotesListScreen() {
         transparent={true}
         onRequestClose={handleCloseNoteSelectionModal}
       >
-        <Pressable style={styles.modalOverlay} onPress={handleCloseNoteSelectionModal}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]} onPress={handleCloseNoteSelectionModal}>
           <Pressable
             style={[
               styles.modalContent,
               styles.noteSelectionModal,
-              { paddingBottom: insets.bottom + 20 },
+              { backgroundColor: colors.modalBackground, paddingBottom: insets.bottom + 20 },
             ]}
             onPress={() => {}}
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCloseNoteSelectionModal}>
-                <Text style={styles.modalCancelText}>
+                <Text style={[styles.modalCancelText, { color: colors.primary }]}>
                   {t("categories.skip")}
                 </Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {t("categories.addNotesToCategory")}
               </Text>
               <View style={{ width: 60 }} />
             </View>
 
-            <Text style={styles.noteSelectionSubtitle}>
+            <Text style={[styles.noteSelectionSubtitle, { color: colors.textTertiary }]}>
               {t("categories.selectNotes")}
             </Text>
 
             {allNotesForSelection.length === 0 ? (
               <View style={styles.emptyNoteSelection}>
-                <Text style={styles.emptyNoteSelectionText}>
+                <Text style={[styles.emptyNoteSelectionText, { color: colors.textMuted }]}>
                   {t("categories.noNotesAvailable")}
                 </Text>
               </View>
@@ -945,24 +950,24 @@ export default function NotesListScreen() {
                   <TouchableOpacity
                     style={[
                       styles.noteSelectionItem,
-                      selectedNoteIds.has(item.id) &&
-                        styles.noteSelectionItemSelected,
+                      { borderBottomColor: colors.border },
+                      selectedNoteIds.has(item.id) && { backgroundColor: isDark ? 'rgba(10, 132, 255, 0.15)' : '#f0f8ff' },
                     ]}
                     onPress={() => handleToggleNoteSelection(item.id)}
                   >
                     <View
                       style={[
                         styles.noteSelectionCheckbox,
-                        selectedNoteIds.has(item.id) &&
-                          styles.noteSelectionCheckboxSelected,
+                        { borderColor: colors.border },
+                        selectedNoteIds.has(item.id) && { backgroundColor: colors.primary, borderColor: colors.primary },
                       ]}
                     >
                       {selectedNoteIds.has(item.id) && (
-                        <Text style={styles.noteSelectionCheckmark}>✓</Text>
+                        <Text style={[styles.noteSelectionCheckmark, { color: colors.textInverse }]}>✓</Text>
                       )}
                     </View>
                     <View style={styles.noteSelectionTextContent}>
-                      <Text style={styles.noteSelectionTitle} numberOfLines={1}>
+                      <Text style={[styles.noteSelectionTitle, { color: colors.text }]} numberOfLines={1}>
                         {isLegacyTitle(item.title)
                           ? formatFallbackTitle(
                               new Date(item.created_at),
@@ -970,7 +975,7 @@ export default function NotesListScreen() {
                             )
                           : item.title}
                       </Text>
-                      <Text style={styles.noteSelectionDate}>
+                      <Text style={[styles.noteSelectionDate, { color: colors.textMuted }]}>
                         {formatDate(item.created_at)}
                       </Text>
                     </View>
@@ -989,17 +994,17 @@ export default function NotesListScreen() {
         animationType="fade"
         onRequestClose={handleCloseCategoryOptions}
       >
-        <Pressable style={styles.modalOverlay} onPress={handleCloseCategoryOptions}>
-          <Pressable style={styles.optionsMenu} onPress={() => {}}>
-            <Text style={styles.modalTitle}>{t("categories.category")}</Text>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]} onPress={handleCloseCategoryOptions}>
+          <Pressable style={[styles.optionsMenu, { backgroundColor: colors.modalBackground }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t("categories.category")}</Text>
             <TouchableOpacity style={styles.menuItem} onPress={handleOpenEditCategory}>
-              <Text style={styles.menuItemText}>{t("common.edit")}</Text>
+              <Text style={[styles.menuItemText, { color: colors.textSecondary }]}>{t("common.edit")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={handleDeleteCategory}>
-              <Text style={[styles.menuItemText, styles.deleteText]}>{t("common.delete")}</Text>
+              <Text style={[styles.menuItemText, { color: colors.danger }]}>{t("common.delete")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={handleOpenReorder}>
-              <Text style={styles.menuItemText}>{t("categories.reorderList")}</Text>
+              <Text style={[styles.menuItemText, { color: colors.textSecondary }]}>{t("categories.reorderList")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1012,16 +1017,16 @@ export default function NotesListScreen() {
         transparent={true}
         onRequestClose={handleCloseEditCategory}
       >
-        <Pressable style={styles.modalOverlay} onPress={handleCloseEditCategory}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]} onPress={handleCloseEditCategory}>
           <Pressable
-            style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}
+            style={[styles.modalContent, { backgroundColor: colors.modalBackground, paddingBottom: insets.bottom + 20 }]}
             onPress={() => {}}
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCloseEditCategory}>
-                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+                <Text style={[styles.modalCancelText, { color: colors.primary }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>{t("categories.editCategory")}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t("categories.editCategory")}</Text>
               <TouchableOpacity
                 onPress={handleSaveEditCategory}
                 disabled={!editingCategoryName.trim()}
@@ -1029,7 +1034,8 @@ export default function NotesListScreen() {
                 <Text
                   style={[
                     styles.modalActionText,
-                    !editingCategoryName.trim() && styles.modalActionTextDisabled,
+                    { color: colors.primary },
+                    !editingCategoryName.trim() && { color: colors.placeholder },
                   ]}
                 >
                   {t("common.save")}
@@ -1038,15 +1044,15 @@ export default function NotesListScreen() {
             </View>
 
             <TextInput
-              style={styles.categoryInput}
+              style={[styles.categoryInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
               value={editingCategoryName}
               onChangeText={setEditingCategoryName}
               placeholder={t("categories.categoryName")}
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.placeholder}
               autoFocus
             />
 
-            <Text style={styles.colorPickerLabel}>
+            <Text style={[styles.colorPickerLabel, { color: colors.textTertiary }]}>
               {t("categories.selectColor")}
             </Text>
             <View style={styles.colorPicker}>
@@ -1056,7 +1062,7 @@ export default function NotesListScreen() {
                   style={[
                     styles.colorOption,
                     { backgroundColor: color },
-                    editingColor === color && styles.colorOptionSelected,
+                    editingColor === color && [styles.colorOptionSelected, { borderColor: colors.text }],
                   ]}
                   onPress={() => setEditingColor(color)}
                 />
@@ -1073,18 +1079,18 @@ export default function NotesListScreen() {
         transparent={true}
         onRequestClose={handleCloseReorder}
       >
-        <Pressable style={styles.modalOverlay} onPress={handleCloseReorder}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]} onPress={handleCloseReorder}>
           <Pressable
-            style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}
+            style={[styles.modalContent, { backgroundColor: colors.modalBackground, paddingBottom: insets.bottom + 20 }]}
             onPress={() => {}}
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCloseReorder}>
-                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+                <Text style={[styles.modalCancelText, { color: colors.primary }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>{t("categories.reorderList")}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t("categories.reorderList")}</Text>
               <TouchableOpacity onPress={handleSaveReorder}>
-                <Text style={styles.modalActionText}>{t("common.save")}</Text>
+                <Text style={[styles.modalActionText, { color: colors.primary }]}>{t("common.save")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -1092,15 +1098,15 @@ export default function NotesListScreen() {
               data={reorderList}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item, index }) => (
-                <View style={styles.reorderRow}>
-                  <Text style={styles.reorderText}>{item.title}</Text>
+                <View style={[styles.reorderRow, { borderBottomColor: colors.borderLight }]}>
+                  <Text style={[styles.reorderText, { color: colors.textSecondary }]}>{item.title}</Text>
                   <View style={styles.reorderActions}>
                     <TouchableOpacity
                       onPress={() => moveCategory(index, index - 1)}
                       disabled={index === 0}
                       style={styles.reorderButton}
                     >
-                      <Ionicons name="chevron-up" size={18} color={index === 0 ? "#ccc" : "#333"} />
+                      <Ionicons name="chevron-up" size={18} color={index === 0 ? colors.border : colors.textSecondary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => moveCategory(index, index + 1)}
@@ -1110,7 +1116,7 @@ export default function NotesListScreen() {
                       <Ionicons
                         name="chevron-down"
                         size={18}
-                        color={index === reorderList.length - 1 ? "#ccc" : "#333"}
+                        color={index === reorderList.length - 1 ? colors.border : colors.textSecondary}
                       />
                     </TouchableOpacity>
                   </View>
@@ -1127,7 +1133,6 @@ export default function NotesListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -1135,12 +1140,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: "#000",
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#fff",
   },
   headerButtons: {
     flexDirection: "row",
@@ -1152,12 +1155,9 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 16,
-    color: "#fff",
   },
   filterContainer: {
-    backgroundColor: "#fff",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
   },
   searchRow: {
     flexDirection: "row",
@@ -1170,7 +1170,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
     borderRadius: 10,
     paddingHorizontal: 12,
   },
@@ -1178,7 +1177,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: "#f5f5f5",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1186,14 +1184,12 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     fontSize: 18,
-    color: "#000",
   },
   clearButton: {
     padding: 4,
   },
   clearButtonText: {
     fontSize: 20,
-    color: "#999",
   },
   categoryBadges: {
     flexDirection: "row",
@@ -1207,14 +1203,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 2,
     borderRadius: 20,
-    backgroundColor: "#f5f5f5",
-    // borderWidth: 1, // Removed to eliminate the border
-    // borderColor: "#f5f5f5", // Removed as border is gone
   },
-  categoryBadgeSelected: {
-    backgroundColor: "#000",
-    borderColor: "#000",
-  },
+  categoryBadgeSelected: {},
   categoryBadgeDot: {
     width: 8,
     height: 8,
@@ -1224,19 +1214,14 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#333",
   },
-  categoryBadgeTextSelected: {
-    color: "#fff",
-  },
+  categoryBadgeTextSelected: {},
   listContent: {
     flexGrow: 1,
-    backgroundColor: "#f5f5f5",
   },
   gridContent: {
     flexGrow: 1,
     padding: 12,
-    backgroundColor: "#f5f5f5",
   },
   gridRow: {
     justifyContent: "space-between",
@@ -1244,11 +1229,9 @@ const styles = StyleSheet.create({
   noteCard: {
     width: "48%",
     minHeight: 180,
-    backgroundColor: "#fff",
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#e0e0e0",
     overflow: "hidden",
   },
   cardCategoryBar: {
@@ -1263,25 +1246,20 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#000",
     marginBottom: 6,
   },
   cardPreview: {
     fontSize: 13,
-    color: "#666",
     marginBottom: 8,
     lineHeight: 18,
   },
   cardDate: {
     fontSize: 12,
-    color: "#999",
   },
   noteItem: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#fff",
   },
   noteContent: {
     flexDirection: "row",
@@ -1293,12 +1271,10 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 17,
     fontWeight: "500",
-    color: "#000",
     marginBottom: 4,
   },
   notePreview: {
     fontSize: 14,
-    color: "#666",
     marginBottom: 6,
   },
   noteMetaRow: {
@@ -1308,17 +1284,13 @@ const styles = StyleSheet.create({
   },
   noteDate: {
     fontSize: 13,
-    color: "#888",
   },
   categoryChip: {
     flexDirection: "row",
     alignItems: "center",
-    // borderWidth: StyleSheet.hairlineWidth, // Removed to eliminate the border
-    // borderColor: "#ddd", // Removed as border is gone
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    backgroundColor: "#fff",
   },
   categoryChipDot: {
     width: 6,
@@ -1328,24 +1300,20 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontSize: 12,
-    color: "#666",
   },
   archiveAction: {
-    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "flex-start",
     paddingHorizontal: 20,
     flex: 1,
   },
   deleteAction: {
-    backgroundColor: "#ff3b30",
     justifyContent: "center",
     alignItems: "flex-end",
     paddingHorizontal: 20,
     flex: 1,
   },
   actionText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -1358,12 +1326,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: "500",
-    color: "#888",
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#aaa",
   },
   fab: {
     position: "absolute",
@@ -1372,14 +1338,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#000",
     justifyContent: "center",
     alignItems: "center",
     elevation: 4,
   },
   fabText: {
     fontSize: 28,
-    color: "#fff",
     fontWeight: "300",
     marginTop: -2,
   },
@@ -1388,7 +1352,6 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     bottom: 24,
-    backgroundColor: "#111",
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -1397,11 +1360,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   undoText: {
-    color: "#fff",
     fontSize: 14,
   },
   undoAction: {
-    color: "#4DA3FF",
     fontSize: 14,
     fontWeight: "600",
   },
@@ -1409,25 +1370,20 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#f5f5f5",
     borderWidth: 1,
-    borderColor: "#ddd",
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
   },
   addCategoryBadgeText: {
     fontSize: 20,
-    color: "#666",
     fontWeight: "300",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 16,
@@ -1435,7 +1391,6 @@ const styles = StyleSheet.create({
     minHeight: "70%",
   },
   optionsMenu: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -1447,22 +1402,16 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: "#333",
-  },
-  deleteText: {
-    color: "#d32f2f",
   },
   reorderRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#eee",
   },
   reorderText: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
   },
   reorderActions: {
     flexDirection: "row",
@@ -1480,33 +1429,24 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#000",
   },
   modalCancelText: {
     fontSize: 16,
-    color: "#007AFF",
   },
   modalActionText: {
     fontSize: 16,
-    color: "#007AFF",
     fontWeight: "600",
   },
-  modalActionTextDisabled: {
-    color: "#999",
-  },
   categoryInput: {
-    backgroundColor: "#f5f5f5",
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#000",
     marginBottom: 20,
   },
   colorPickerLabel: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#666",
     marginBottom: 12,
   },
   colorPicker: {
@@ -1522,32 +1462,24 @@ const styles = StyleSheet.create({
   },
   colorOptionSelected: {
     borderWidth: 3,
-    borderColor: "#000",
   },
   addNotesButton: {
-    backgroundColor: "#000",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
   },
-  addNotesButtonDisabled: {
-    backgroundColor: "#e0e0e0",
-  },
+  addNotesButtonDisabled: {},
   addNotesButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
-  addNotesButtonTextDisabled: {
-    color: "#999",
-  },
+  addNotesButtonTextDisabled: {},
   noteSelectionModal: {
     maxHeight: "80%",
   },
   noteSelectionSubtitle: {
     fontSize: 14,
-    color: "#666",
     marginBottom: 16,
   },
   noteSelectionList: {
@@ -1558,27 +1490,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
   },
-  noteSelectionItemSelected: {
-    backgroundColor: "#f0f8ff",
-  },
+  noteSelectionItemSelected: {},
   noteSelectionCheckbox: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#ddd",
     marginRight: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  noteSelectionCheckboxSelected: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
-  },
+  noteSelectionCheckboxSelected: {},
   noteSelectionCheckmark: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "600",
   },
@@ -1588,12 +1512,10 @@ const styles = StyleSheet.create({
   noteSelectionTitle: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#000",
     marginBottom: 2,
   },
   noteSelectionDate: {
     fontSize: 13,
-    color: "#888",
   },
   emptyNoteSelection: {
     paddingVertical: 40,
@@ -1601,6 +1523,5 @@ const styles = StyleSheet.create({
   },
   emptyNoteSelectionText: {
     fontSize: 16,
-    color: "#888",
   },
 });

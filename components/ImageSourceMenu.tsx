@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/lib/theme';
 
 interface ImageSourceMenuProps {
   visible: boolean;
@@ -17,6 +18,7 @@ interface ImageSourceMenuProps {
 
 export function ImageSourceMenu({ visible, onSelectSource, onClose }: ImageSourceMenuProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
 
   const handleSelect = (source: 'camera' | 'gallery') => {
     onSelectSource(source);
@@ -29,24 +31,24 @@ export function ImageSourceMenu({ visible, onSelectSource, onClose }: ImageSourc
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={styles.menu}>
-          <Text style={styles.menuTitle}>{t('blocks.addImage')}</Text>
+      <Pressable style={[styles.overlay, { backgroundColor: colors.modalOverlay }]} onPress={onClose}>
+        <View style={[styles.menu, { backgroundColor: colors.modalBackground }]}>
+          <Text style={[styles.menuTitle, { color: colors.placeholder }]}>{t('blocks.addImage')}</Text>
 
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => handleSelect('camera')}
           >
-            <Ionicons name="camera-outline" size={20} color="#333" />
-            <Text style={styles.menuItemText}>{t('blocks.fromCamera')}</Text>
+            <Ionicons name="camera-outline" size={20} color={colors.textSecondary} />
+            <Text style={[styles.menuItemText, { color: colors.textSecondary }]}>{t('blocks.fromCamera')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => handleSelect('gallery')}
           >
-            <Ionicons name="images-outline" size={20} color="#333" />
-            <Text style={styles.menuItemText}>{t('blocks.fromGallery')}</Text>
+            <Ionicons name="images-outline" size={20} color={colors.textSecondary} />
+            <Text style={[styles.menuItemText, { color: colors.textSecondary }]}>{t('blocks.fromGallery')}</Text>
           </TouchableOpacity>
         </View>
       </Pressable>
@@ -57,12 +59,10 @@ export function ImageSourceMenu({ visible, onSelectSource, onClose }: ImageSourc
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   menu: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     paddingVertical: 16,
     minWidth: 200,
@@ -74,7 +74,6 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 14,
-    color: '#999',
     fontWeight: '600',
     paddingHorizontal: 16,
     paddingBottom: 8,
@@ -89,6 +88,5 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: '#333',
   },
 });

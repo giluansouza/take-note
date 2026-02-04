@@ -9,6 +9,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Block, BlockType, parseImageContent, ImageBlockContent } from '@/lib/blocks.repository';
+import { useTheme } from '@/lib/theme';
 import { BlockTypeMenu } from './BlockTypeMenu';
 
 interface ImageBlockProps {
@@ -34,6 +35,7 @@ export function ImageBlock({
   onDelete,
   onImagePress,
 }: ImageBlockProps) {
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
 
   const imageContent = parseImageContent(block.content);
@@ -73,13 +75,13 @@ export function ImageBlock({
         />
       )}
       <TouchableOpacity
-        style={styles.imageContainer}
+        style={[styles.imageContainer, { backgroundColor: colors.backgroundSecondary }]}
         onPress={handlePress}
         activeOpacity={0.9}
       >
         {isLoading && (
-          <View style={[styles.placeholder, { height: displayHeight }]}>
-            <ActivityIndicator color="#999" />
+          <View style={[styles.placeholder, { height: displayHeight, backgroundColor: colors.backgroundSecondary }]}>
+            <ActivityIndicator color={colors.placeholder} />
           </View>
         )}
         <Image
@@ -116,7 +118,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
   },
   image: {
     width: '100%',
@@ -132,7 +133,6 @@ const styles = StyleSheet.create({
     right: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     borderRadius: 8,
   },
   expandButton: {

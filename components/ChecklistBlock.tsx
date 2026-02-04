@@ -16,6 +16,7 @@ import {
   parseChecklistContent,
   ChecklistItem,
 } from '@/lib/blocks.repository';
+import { useTheme } from '@/lib/theme';
 import { BlockTypeMenu } from './BlockTypeMenu';
 
 interface ChecklistBlockProps {
@@ -37,6 +38,7 @@ export function ChecklistBlock({
   onInsertBlockBelow,
   onDelete,
 }: ChecklistBlockProps) {
+  const { colors } = useTheme();
   const [items, setItems] = useState<ChecklistItem[]>(() =>
     parseChecklistContent(block.content)
   );
@@ -158,22 +160,30 @@ export function ChecklistBlock({
           onDelete={onDelete}
         />
       )}
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: colors.backgroundTertiary }]}>
         {items.map((item, index) => (
           <View key={item.id} style={styles.itemRow}>
             <TouchableOpacity
               style={styles.checkbox}
               onPress={() => handleToggle(item.id)}
             >
-              <View style={[styles.checkboxInner, item.done && styles.checkboxChecked]}>
-                {item.done && <Text style={styles.checkmark}>✓</Text>}
+              <View style={[
+                styles.checkboxInner,
+                { borderColor: colors.checkboxBorder },
+                item.done && { backgroundColor: colors.checkboxChecked, borderColor: colors.checkboxChecked }
+              ]}>
+                {item.done && <Text style={[styles.checkmark, { color: colors.checkmark }]}>✓</Text>}
               </View>
             </TouchableOpacity>
             <TextInput
               ref={(ref) => {
                 if (ref) inputRefs.current.set(item.id, ref);
               }}
-              style={[styles.itemText, item.done && styles.itemTextDone]}
+              style={[
+                styles.itemText,
+                { color: colors.text },
+                item.done && { textDecorationLine: 'line-through', color: colors.placeholder }
+              ]}
               value={item.text}
               onChangeText={(text) => handleTextChange(item.id, text)}
               onKeyPress={(e) => handleKeyPress(item.id, e)}
@@ -181,13 +191,13 @@ export function ChecklistBlock({
               onFocus={handleFocus}
               onBlur={handleBlur}
               placeholder="Item"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.placeholder}
               blurOnSubmit={false}
             />
           </View>
         ))}
         <TouchableOpacity style={styles.addItem} onPress={handleAddItem}>
-          <Text style={styles.addItemText}>+ Add item</Text>
+          <Text style={[styles.addItemText, { color: colors.textTertiary }]}>+ Add item</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -202,7 +212,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: '#fafafa',
     borderRadius: 4,
     padding: 8,
   },
@@ -218,35 +227,23 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 1.5,
-    borderColor: '#ccc',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkboxChecked: {
-    backgroundColor: '#000',
-    borderColor: '#000',
-  },
   checkmark: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: '700',
   },
   itemText: {
     flex: 1,
     fontSize: 15,
-    color: '#000',
     padding: 4,
-  },
-  itemTextDone: {
-    textDecorationLine: 'line-through',
-    color: '#999',
   },
   addItem: {
     paddingVertical: 8,
   },
   addItemText: {
     fontSize: 14,
-    color: '#666',
   },
 });

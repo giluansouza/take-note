@@ -1,4 +1,5 @@
 import { Block, BlockType, ImageBlockContent } from '@/lib/blocks.repository';
+import { MarkdownShortcutHintType } from '@/lib/ux/hints';
 import { TextBlock } from './TextBlock';
 import { ChecklistBlock } from './ChecklistBlock';
 import { ListBlock } from './ListBlock';
@@ -12,6 +13,9 @@ interface BlockRendererProps {
   onUpdate: () => void;
   autoFocus?: boolean;
   isFocused?: boolean;
+  textPlaceholder?: string;
+  showSlashHint?: boolean;
+  onDetectedMarkdownShortcut?: (type: MarkdownShortcutHintType) => void;
   onTransform: (blockId: number, newType: BlockType, newContent: string | null) => void;
   onFocusBlock?: () => void;
   onInsertBlockBelow: (blockId: number, type?: BlockType) => void;
@@ -24,6 +28,9 @@ export function BlockRenderer({
   onUpdate,
   autoFocus,
   isFocused,
+  textPlaceholder,
+  showSlashHint,
+  onDetectedMarkdownShortcut,
   onTransform,
   onFocusBlock,
   onInsertBlockBelow,
@@ -37,6 +44,9 @@ export function BlockRenderer({
           block={block}
           onUpdate={onUpdate}
           autoFocus={autoFocus}
+          placeholder={textPlaceholder}
+          showSlashHint={showSlashHint}
+          onDetectedMarkdownShortcut={onDetectedMarkdownShortcut}
           onTransform={onTransform}
           onFocusBlock={onFocusBlock}
           onInsertBlockBelow={(type) => onInsertBlockBelow(block.id, type)}

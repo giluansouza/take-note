@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { Block, updateBlockContent, BlockType } from '@/lib/blocks.repository';
+import { useTheme } from '@/lib/theme';
 import { BlockTypeMenu } from './BlockTypeMenu';
 
 interface TitleBlockProps {
@@ -22,6 +23,7 @@ export function TitleBlock({
   onInsertBlockBelow,
   onDelete,
 }: TitleBlockProps) {
+  const { colors } = useTheme();
   const [content, setContent] = useState(block.content || '');
   const [isFocused, setIsFocused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,12 +75,12 @@ export function TitleBlock({
       )}
       <TextInput
         ref={inputRef}
-        style={styles.input}
+        style={[styles.input, { color: colors.text }]}
         value={content}
         onChangeText={handleContentChange}
         onSubmitEditing={handleSubmitEditing}
         placeholder="Title"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.placeholder}
         onFocus={handleFocus}
         onBlur={handleBlur}
         blurOnSubmit={false}
@@ -98,7 +100,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 22,
     fontWeight: '700',
-    color: '#000',
     padding: 8,
     borderRadius: 4,
     minHeight: 40,

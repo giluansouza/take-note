@@ -1,3 +1,4 @@
+import { useInterstitialAd } from "@/lib/ads";
 import { BlockRenderer } from "@/components/BlockRenderer";
 import { ImageViewer } from "@/components/ImageViewer";
 import { ImageSourceMenu } from "@/components/ImageSourceMenu";
@@ -22,6 +23,12 @@ import {
 } from "@/lib/notes.repository";
 import { processAndSaveImage, deleteImageFiles } from "@/lib/images.service";
 import { useImagePicker } from "@/hooks/useImagePicker";
+import { useTheme } from "@/lib/theme";
+import {
+  markMarkdownShortcutHintShown,
+  shouldShowMarkdownShortcutHint,
+  type MarkdownShortcutHintType,
+} from "@/lib/ux/hints";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -40,13 +47,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function NoteDetailScreen() {
   const { t, i18n } = useTranslation();
+  const { colors, isDark } = useTheme();
   const { id, autofocus } = useLocalSearchParams<{
     id: string;
     autofocus?: string;
@@ -61,6 +68,10 @@ export default function NoteDetailScreen() {
   const scrollRef = useRef<ScrollView | null>(null);
   const [undoInfo, setUndoInfo] = useState<{ block: Block } | null>(null);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoInfoRef = useRef<{ block: Block } | null>(null);
+  const [markdownHint, setMarkdownHint] = useState<MarkdownShortcutHintType | null>(null);
+  const markdownHintRef = useRef<MarkdownShortcutHintType | null>(null);
+  const markdownHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -75,9 +86,13 @@ export default function NoteDetailScreen() {
   const [pendingImageSourceBlockId, setPendingImageSourceBlockId] = useState<number | null>(null);
   const { pickFromGallery, takePhoto } = useImagePicker();
 
+  // Interstitial ad
+  const { startEditSession, showIfEligible } = useInterstitialAd();
+
   useFocusEffect(
     useCallback(() => {
       loadNote();
+      startEditSession();
       return () => {
         if (titleTimeoutRef.current) {
           clearTimeout(titleTimeoutRef.current);
@@ -85,6 +100,10 @@ export default function NoteDetailScreen() {
       };
     }, [noteId]),
   );
+
+  useEffect(() => {
+    undoInfoRef.current = undoInfo;
+  }, [undoInfo]);
 
   const loadNote = async () => {
     try {
@@ -309,7 +328,44 @@ export default function NoteDetailScreen() {
     Keyboard.dismiss();
   };
 
-  const handleBack = () => {
+  const handleDetectedMarkdownShortcut = useCallback(
+    (type: MarkdownShortcutHintType) => {
+      // Undo toast has priority; skip showing hints while it's visible.
+      if (undoInfoRef.current) return;
+      if (markdownHintRef.current) return;
+
+      (async () => {
+        try {
+          const shouldShow = await shouldShowMarkdownShortcutHint(type);
+          if (!shouldShow) return;
+
+          await markMarkdownShortcutHintShown(type);
+
+          // Re-check priority after async work.
+          if (undoInfoRef.current) return;
+          if (markdownHintRef.current) return;
+
+          markdownHintRef.current = type;
+          setMarkdownHint(type);
+
+          if (markdownHintTimeoutRef.current) {
+            clearTimeout(markdownHintTimeoutRef.current);
+          }
+          markdownHintTimeoutRef.current = setTimeout(() => {
+            markdownHintRef.current = null;
+            setMarkdownHint(null);
+            markdownHintTimeoutRef.current = null;
+          }, 2500);
+        } catch (error) {
+          console.error("Failed to show markdown shortcut hint:", error);
+        }
+      })();
+    },
+    [],
+  );
+
+  const handleBack = async () => {
+    await showIfEligible();
     router.back();
   };
 
@@ -397,41 +453,47 @@ export default function NoteDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-                <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+                <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.headerBackground }]}>
                   <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={20} color="#fff" />
-                    <Text style={styles.backText}>{t("common.back")}</Text>
+                    <Ionicons name="chevron-back" size={20} color={colors.headerText} />
+                    <Text style={[styles.backText, { color: colors.headerText }]}>{t("common.back")}</Text>
                   </TouchableOpacity>
                   <View style={styles.headerActions}>
                     <TouchableOpacity
                       onPress={handleDeleteNote}
                       style={styles.menuButton}
                     >
-                      <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+                      <Ionicons name="trash-outline" size={20} color={colors.danger} />
                     </TouchableOpacity>
                   </View>
                 </View>
 
-        <TouchableWithoutFeedback onPress={handleBlurAll} accessible={false}>
-          <ScrollView
-            ref={scrollRef}
-            style={styles.content}
-            contentContainerStyle={[
-              styles.contentContainer,
-              { paddingBottom: Math.max(100, keyboardHeight) },
-            ]}
-            keyboardShouldPersistTaps="handled"
-          >
-              <View style={styles.titleSection}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.content}
+          contentContainerStyle={[
+            styles.contentContainer,
+            { paddingBottom: Math.max(100, keyboardHeight) },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          onTouchStart={() => {
+            // Touches inside a ScrollView don't reliably bubble to wrappers.
+            // Use this to clear the focused block highlight when tapping outside,
+            // even if the keyboard is already closed.
+            handleBlurAll();
+          }}
+        >
+              <View style={[styles.titleSection, { backgroundColor: colors.backgroundTertiary, borderBottomColor: colors.borderLight }]}>
                 <TouchableOpacity
                   onPress={() => setShowCategoryPicker(true)}
-                  style={styles.categoryDisplay}
+                  style={[styles.categoryDisplay, { backgroundColor: colors.background }]}
                 >
                   {getCurrentCategory() ? (
                     <>
@@ -443,7 +505,7 @@ export default function NoteDetailScreen() {
                           },
                         ]}
                       />
-                      <Text style={styles.categoryNameText}>
+                      <Text style={[styles.categoryNameText, { color: colors.textSecondary }]}>
                         {getCurrentCategory()?.title}
                       </Text>
                     </>
@@ -452,10 +514,10 @@ export default function NoteDetailScreen() {
                       <Ionicons
                         name="pricetag-outline"
                         size={14}
-                        color="#999"
+                        color={colors.placeholder}
                         style={styles.categoryPlaceholderIcon}
                       />
-                      <Text style={styles.categoryPlaceholderText}>
+                      <Text style={[styles.categoryPlaceholderText, { color: colors.textMuted }]}>
                         {t("categories.uncategorized")}
                       </Text>
                     </View>
@@ -463,17 +525,22 @@ export default function NoteDetailScreen() {
                 </TouchableOpacity>
 
                 <TextInput
-                  style={styles.titleInput}
+                  style={[styles.titleInput, { color: colors.text }]}
                   value={title}
                   onChangeText={handleTitleChange}
                   placeholder={t("notes.notePlaceholder")}
-                  placeholderTextColor="#bbb"
+                  placeholderTextColor={colors.placeholder}
                   onFocus={() => setFocusedBlockId(null)}
                 />
               </View>
 
             {blocks.map((block, index) => {
               const isFocused = focusedBlockId === block.id;
+              const shouldShowSlashPlaceholder =
+                title.trim() === "" &&
+                blocks.length === 1 &&
+                blocks[0]?.type === "text" &&
+                !((blocks[0]?.content ?? "").trim());
               return (
                 <View
                   key={block.id}
@@ -482,7 +549,7 @@ export default function NoteDetailScreen() {
                   }
                 >
                   <View
-                    style={isFocused ? styles.focusedBlockContainer : undefined}
+                    style={isFocused ? [styles.focusedBlockContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }] : undefined}
                   >
                     <BlockRenderer
                       block={block}
@@ -493,6 +560,13 @@ export default function NoteDetailScreen() {
                       autofocusBlockId === block.id
                     }
                     isFocused={isFocused}
+                    textPlaceholder={
+                      shouldShowSlashPlaceholder && index === 0
+                        ? t("blocks.textPlaceholderWithSlash")
+                        : ""
+                    }
+                    showSlashHint={index === 0}
+                    onDetectedMarkdownShortcut={handleDetectedMarkdownShortcut}
                     onFocusBlock={() => handleFocusBlock(block.id)}
                     onInsertBlockBelow={handleInsertBlockBelow}
                     onDeleteBlock={handleDeleteBlock}
@@ -505,14 +579,14 @@ export default function NoteDetailScreen() {
                     style={styles.insertBlockButton}
                     onPress={() => handleInsertBlockBelow(block.id)}
                   >
-                    <View style={styles.insertBlockLine} />
+                    <View style={[styles.insertBlockLine, { backgroundColor: colors.border }]} />
                     <Ionicons
                       name="add"
                       size={16}
-                      color="#999"
+                      color={colors.placeholder}
                       style={styles.insertBlockIcon}
                     />
-                    <View style={styles.insertBlockLine} />
+                    <View style={[styles.insertBlockLine, { backgroundColor: colors.border }]} />
                   </TouchableOpacity>
                 )}
                 </View>
@@ -522,13 +596,12 @@ export default function NoteDetailScreen() {
             {blocks.length === 0 && (
               <TouchableOpacity
                 onPress={handleAddBlock}
-                style={styles.addBlockButton}
+                style={[styles.addBlockButton, { backgroundColor: colors.backgroundSecondary }]}
               >
-                <Ionicons name="add" size={24} color="#999" />
+                <Ionicons name="add" size={24} color={colors.placeholder} />
               </TouchableOpacity>
             )}
-          </ScrollView>
-        </TouchableWithoutFeedback>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Category Picker Modal */}
@@ -539,18 +612,18 @@ export default function NoteDetailScreen() {
         onRequestClose={() => setShowCategoryPicker(false)}
       >
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
           onPress={() => setShowCategoryPicker(false)}
         >
           <Pressable
-            style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}
+            style={[styles.modalContent, { backgroundColor: colors.modalBackground, paddingBottom: insets.bottom + 20 }]}
             onPress={() => {}}
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+                <Text style={[styles.modalCancelText, { color: colors.primary }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>{t("categories.category")}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t("categories.category")}</Text>
               <View style={{ width: 60 }} />
             </View>
 
@@ -564,7 +637,8 @@ export default function NoteDetailScreen() {
                 <TouchableOpacity
                   style={[
                     styles.categoryOption,
-                    categoryId === item.id && styles.categoryOptionSelected,
+                    { borderBottomColor: colors.border },
+                    categoryId === item.id && { backgroundColor: isDark ? 'rgba(10, 132, 255, 0.15)' : '#f0f8ff' },
                   ]}
                   onPress={() => handleSelectCategory(item.id)}
                 >
@@ -579,14 +653,14 @@ export default function NoteDetailScreen() {
                   <Text
                     style={[
                       styles.categoryOptionText,
-                      categoryId === item.id &&
-                        styles.categoryOptionTextSelected,
+                      { color: colors.text },
+                      categoryId === item.id && styles.categoryOptionTextSelected,
                     ]}
                   >
                     {item.title}
                   </Text>
                   {categoryId === item.id && (
-                    <Ionicons name="checkmark" size={18} color="#007AFF" />
+                    <Ionicons name="checkmark" size={18} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               )}
@@ -595,16 +669,42 @@ export default function NoteDetailScreen() {
         </Pressable>
       </Modal>
 
+      {markdownHint && !undoInfo && (
+        <Pressable
+          onPress={() => {
+            markdownHintRef.current = null;
+            setMarkdownHint(null);
+            if (markdownHintTimeoutRef.current) {
+              clearTimeout(markdownHintTimeoutRef.current);
+              markdownHintTimeoutRef.current = null;
+            }
+          }}
+          style={[
+            styles.hintToast,
+            {
+              backgroundColor: colors.toastBackground,
+              bottom: Math.max(16, keyboardHeight + 16),
+            },
+          ]}
+        >
+          <Text style={[styles.hintToastText, { color: colors.toastText }]}>
+            {markdownHint === "list"
+              ? t("hints.listShortcut")
+              : t("hints.checklistShortcut")}
+          </Text>
+        </Pressable>
+      )}
+
       {undoInfo && (
         <View
           style={[
             styles.undoToast,
-            { bottom: Math.max(16, keyboardHeight + 16) },
+            { backgroundColor: colors.toastBackground, bottom: Math.max(16, keyboardHeight + 16) },
           ]}
         >
-          <Text style={styles.undoText}>{t("blocks.deleted")}</Text>
+          <Text style={[styles.undoText, { color: colors.toastText }]}>{t("blocks.deleted")}</Text>
           <TouchableOpacity onPress={handleUndoDelete}>
-            <Text style={styles.undoAction}>{t("blocks.undo")}</Text>
+            <Text style={[styles.undoAction, { color: colors.toastAction }]}>{t("blocks.undo")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -630,7 +730,6 @@ export default function NoteDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   keyboardView: {
     flex: 1,
@@ -641,7 +740,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: "#000",
   },
   headerActions: {
     flexDirection: "row",
@@ -656,7 +754,6 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: "#fff",
   },
   menuButton: {
     paddingHorizontal: 8,
@@ -670,14 +767,12 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   titleSection: {
-    backgroundColor: '#f8f8f8',
     marginHorizontal: -20,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   categoryDisplay: {
     flexDirection: 'row',
@@ -686,7 +781,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: '#fff',
     borderRadius: 12,
   },
   categoryDot: {
@@ -696,7 +790,6 @@ const styles = StyleSheet.create({
   },
   categoryNameText: {
     fontSize: 14,
-    color: '#333',
     marginLeft: 6,
   },
   categoryPlaceholderRow: {
@@ -708,17 +801,14 @@ const styles = StyleSheet.create({
   },
   categoryPlaceholderText: {
     fontSize: 14,
-    color: '#888',
   },
   titleInput: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#000",
     padding: 0,
     minHeight: 32,
   },
   focusedBlockContainer: {
-    backgroundColor: "rgba(0,0,0,0.04)",
     borderRadius: 4,
   },
   addBlockButton: {
@@ -726,7 +816,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f5f5f5",
     borderRadius: 8,
   },
   insertBlockButton: {
@@ -740,7 +829,6 @@ const styles = StyleSheet.create({
   insertBlockLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#ddd",
   },
   insertBlockIcon: {
     marginHorizontal: 8,
@@ -749,7 +837,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    backgroundColor: "#111",
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -758,21 +845,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   undoText: {
-    color: "#fff",
     fontSize: 14,
   },
   undoAction: {
-    color: "#4DA3FF",
     fontSize: 14,
     fontWeight: "600",
   },
+  hintToast: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  hintToastText: {
+    fontSize: 14,
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 16,
@@ -789,22 +883,17 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#000",
   },
   modalCancelText: {
     fontSize: 16,
-    color: "#007AFF",
   },
   categoryOption: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
   },
-  categoryOptionSelected: {
-    backgroundColor: "#f0f8ff",
-  },
+  categoryOptionSelected: {},
   categoryOptionDot: {
     width: 12,
     height: 12,
@@ -814,7 +903,6 @@ const styles = StyleSheet.create({
   categoryOptionText: {
     flex: 1,
     fontSize: 16,
-    color: "#000",
   },
   categoryOptionTextSelected: {
     fontWeight: "600",

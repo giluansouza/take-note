@@ -4,6 +4,7 @@ import {
   Note,
   unarchiveNote,
 } from "@/lib/notes.repository";
+import { useTheme } from "@/lib/theme";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
@@ -21,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ArchivedScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [notes, setNotes] = useState<Note[]>([]);
   const swipeableRefs = useRef<Map<number, Swipeable>>(new Map());
@@ -97,14 +99,14 @@ export default function ArchivedScreen() {
   };
 
   const renderLeftActions = () => (
-    <View style={styles.unarchiveAction}>
-      <Text style={styles.actionText}>{t("notes.unarchive")}</Text>
+    <View style={[styles.unarchiveAction, { backgroundColor: colors.success }]}>
+      <Text style={[styles.actionText, { color: colors.textInverse }]}>{t("notes.unarchive")}</Text>
     </View>
   );
 
   const renderRightActions = () => (
-    <View style={styles.deleteAction}>
-      <Text style={styles.actionText}>{t("notes.delete")}</Text>
+    <View style={[styles.deleteAction, { backgroundColor: colors.danger }]}>
+      <Text style={[styles.actionText, { color: colors.textInverse }]}>{t("notes.delete")}</Text>
     </View>
   );
 
@@ -126,25 +128,25 @@ export default function ArchivedScreen() {
       overshootRight={false}
     >
       <TouchableOpacity
-        style={styles.noteItem}
+        style={[styles.noteItem, { backgroundColor: colors.background, borderBottomColor: colors.border }]}
         onPress={() => handleNotePress(item.id)}
         activeOpacity={0.7}
       >
-        <Text style={styles.noteTitle} numberOfLines={1}>
+        <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={1}>
           {item.title || t("notes.untitled")}
         </Text>
-        <Text style={styles.noteDate}>{formatDate(item.created_at)}</Text>
+        <Text style={[styles.noteDate, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
       </TouchableOpacity>
     </Swipeable>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={styles.backText}>{"<"} {t("common.back")}</Text>
+          <Text style={[styles.backText, { color: colors.headerText }]}>{"<"} {t("common.back")}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("archived.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>{t("archived.title")}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -155,7 +157,7 @@ export default function ArchivedScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>{t("archived.noArchived")}</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("archived.noArchived")}</Text>
           </View>
         }
       />
@@ -166,7 +168,6 @@ export default function ArchivedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -174,7 +175,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: "#000",
   },
   backButton: {
     paddingVertical: 4,
@@ -182,12 +182,10 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: "#fff",
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#fff",
   },
   placeholder: {
     width: 60,
@@ -199,35 +197,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#fff",
   },
   noteTitle: {
     fontSize: 17,
     fontWeight: "500",
-    color: "#000",
     marginBottom: 4,
   },
   noteDate: {
     fontSize: 13,
-    color: "#888",
   },
   unarchiveAction: {
-    backgroundColor: "#34c759",
     justifyContent: "center",
     alignItems: "flex-start",
     paddingHorizontal: 20,
     flex: 1,
   },
   deleteAction: {
-    backgroundColor: "#ff3b30",
     justifyContent: "center",
     alignItems: "flex-end",
     paddingHorizontal: 20,
     flex: 1,
   },
   actionText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -239,6 +230,5 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#888",
   },
 });
