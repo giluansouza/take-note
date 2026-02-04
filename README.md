@@ -1,50 +1,69 @@
-# Welcome to your Expo app 👋
+# Take Note
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Take Note is a minimal, offline-first notes app built with React Native + Expo.
 
-## Get started
+The app focuses on fast capture and editing with a block-based note model (text, titles, lists, checklists, quotes, and images), stored locally with SQLite.
 
-1. Install dependencies
+## Features
 
-   ```bash
-   npm install
-   ```
+- Offline-first (local SQLite)
+- Block editor: `text`, `title`, `subtitle`, `quote`, `list`, `checklist`, `image`
+- Image attachments (stored locally on-device)
+- Archive / unarchive notes
+- i18n: English + Portuguese (Brazil)
 
-2. Start the app
+## Tech Stack
 
-   ```bash
-   npx expo start
-   ```
+- Expo + React Native
+- `expo-router` (file-based routing)
+- `expo-sqlite` (local storage)
+- `i18next` + `react-i18next` (translations)
+- `expo-image-picker` + `expo-file-system` + `expo-image-manipulator` (images)
 
-In the output, you'll find options to open the app in a
+## Requirements
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Node.js + npm
+- Expo tooling (via `npx expo ...`)
+- Android Studio (for Android emulator) and/or Xcode (for iOS simulator)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Getting Started
 
-## Get a fresh project
-
-When you're ready, run:
+Install dependencies:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Run the app:
 
-## Learn more
+```bash
+npm run start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Convenience shortcuts:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm run android
+npm run ios
+npm run web
+```
 
-## Join the community
+## Project Structure
 
-Join our community of developers creating universal apps.
+- `app/`: screens and routes (Expo Router)
+- `components/`: UI + block renderer/components
+- `lib/`: storage (SQLite), repositories, i18n, services
+- `.docs/`: internal notes/specs
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Legal
+
+- Privacy Policy: `https://giluansouza.github.io/take-note/privacy-policy.html`
+- Terms & Conditions: `https://giluansouza.github.io/take-note/terms-and-conditions.html`
+
+## Scripts
+
+- `npm run start`: start Metro bundler (Expo)
+- `npm run android`: start + open Android
+- `npm run ios`: start + open iOS
+- `npm run web`: start web
+- `npm run lint`: lint
