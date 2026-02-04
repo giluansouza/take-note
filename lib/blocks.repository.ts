@@ -1,6 +1,6 @@
 import { getDatabase } from './db';
 
-export type BlockType = 'text' | 'checklist' | 'list' | 'title' | 'subtitle' | 'quote';
+export type BlockType = 'text' | 'checklist' | 'list' | 'title' | 'subtitle' | 'quote' | 'image';
 
 export interface Block {
   id: number;
@@ -21,6 +21,17 @@ export interface ChecklistItem {
 export interface ListItem {
   id: number;
   text: string;
+}
+
+export interface ImageBlockContent {
+  id: string;
+  original_uri: string;
+  thumbnail_uri: string;
+  width: number;
+  height: number;
+  size_kb: number;
+  mime_type: string;
+  created_at: string;
 }
 
 export async function getBlocksByNoteId(noteId: number): Promise<Block[]> {
@@ -125,4 +136,13 @@ export function textToListContent(text: string | null): string {
   return items.length > 0
     ? JSON.stringify(items)
     : JSON.stringify([{ id: 1, text: '' }]);
+}
+
+export function parseImageContent(content: string | null): ImageBlockContent | null {
+  if (!content) return null;
+  try {
+    return JSON.parse(content) as ImageBlockContent;
+  } catch {
+    return null;
+  }
 }

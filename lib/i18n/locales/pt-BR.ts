@@ -52,17 +52,6 @@ export default {
     undo: 'Desfazer',
   },
 
-  blocks: {
-    blockType: 'Tipo de bloco',
-    text: 'Texto',
-    title: 'Título',
-    subtitle: 'Subtítulo',
-    quote: 'Citação',
-    list: 'Lista',
-    checklist: 'Checklist',
-    insertBelow: 'Inserir abaixo',
-  },
-
   categories: {
     all: 'Todas',
     uncategorized: 'Sem categoria',
@@ -114,9 +103,14 @@ export default {
     quote: 'Citação',
     list: 'Lista',
     checklist: 'Checklist',
+    image: 'Imagem',
     insertBelow: 'Inserir abaixo',
+    insertImage: 'Inserir imagem',
     delete: 'Excluir bloco',
     deleted: 'Bloco excluído',
     undo: 'Desfazer',
+    addImage: 'Adicionar Imagem',
+    fromCamera: 'Tirar Foto',
+    fromGallery: 'Escolher da Galeria',
   },
 };

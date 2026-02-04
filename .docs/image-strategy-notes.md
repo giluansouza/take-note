@@ -113,8 +113,6 @@ Largura máxima:
 
 Manter proporção original
 
-PNG só deve ser mantido se transparência for necessária (caso raro).
-
 Miniaturas (Thumbnails)
 Objetivo
 Scroll fluido

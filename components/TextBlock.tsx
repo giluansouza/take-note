@@ -19,7 +19,7 @@ interface TextBlockProps {
     newContent: string | null,
   ) => void;
   onFocusBlock?: () => void;
-  onInsertBlockBelow?: () => void;
+  onInsertBlockBelow?: (type?: BlockType) => void;
   onDelete?: () => void;
 }
 
@@ -136,8 +136,7 @@ export function TextBlock({
         onKeyPress={handleKeyPress}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        placeholder="Text"
-        placeholderTextColor="#999"
+        placeholder=""
         multiline
       />
     </View>

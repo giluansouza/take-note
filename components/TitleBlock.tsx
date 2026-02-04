@@ -9,7 +9,7 @@ interface TitleBlockProps {
   autoFocus?: boolean;
   onTransform: (blockId: number, newType: BlockType, newContent: string | null) => void;
   onFocusBlock?: () => void;
-  onInsertBlockBelow?: () => void;
+  onInsertBlockBelow?: (type?: BlockType) => void;
   onDelete?: () => void;
 }
 

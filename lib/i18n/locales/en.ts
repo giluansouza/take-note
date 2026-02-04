@@ -52,17 +52,6 @@ export default {
     undo: 'Undo',
   },
 
-  blocks: {
-    blockType: 'Block type',
-    text: 'Text',
-    title: 'Title',
-    subtitle: 'Subtitle',
-    quote: 'Quote',
-    list: 'List',
-    checklist: 'Checklist',
-    insertBelow: 'Insert below',
-  },
-
   categories: {
     all: 'All',
     uncategorized: 'Uncategorized',
@@ -114,9 +103,14 @@ export default {
     quote: 'Quote',
     list: 'List',
     checklist: 'Checklist',
+    image: 'Image',
     insertBelow: 'Insert below',
+    insertImage: 'Insert image',
     delete: 'Delete block',
     deleted: 'Block deleted',
     undo: 'Undo',
+    addImage: 'Add Image',
+    fromCamera: 'Take Photo',
+    fromGallery: 'Choose from Gallery',
   },
 };

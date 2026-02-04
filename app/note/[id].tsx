@@ -1,10 +1,14 @@
 import { BlockRenderer } from "@/components/BlockRenderer";
+import { ImageViewer } from "@/components/ImageViewer";
+import { ImageSourceMenu } from "@/components/ImageSourceMenu";
 import {
   Block,
   BlockType,
+  ImageBlockContent,
   createBlock,
   deleteBlock,
   getBlocksByNoteId,
+  parseImageContent,
   textToChecklistContent,
   textToListContent,
   transformBlockType,
@@ -16,7 +20,8 @@ import {
   setNoteCategory,
   updateNoteTitle,
 } from "@/lib/notes.repository";
-import { formatFallbackTitle } from "@/lib/title";
+import { processAndSaveImage, deleteImageFiles } from "@/lib/images.service";
+import { useImagePicker } from "@/hooks/useImagePicker";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -50,7 +55,6 @@ export default function NoteDetailScreen() {
   const insets = useSafeAreaInsets();
 
   const [title, setTitle] = useState("");
-  const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [autofocusBlockId, setAutofocusBlockId] = useState<number | null>(null);
   const [focusedBlockId, setFocusedBlockId] = useState<number | null>(null);
@@ -62,6 +66,14 @@ export default function NoteDetailScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const titleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Image viewer state
+  const [viewerImage, setViewerImage] = useState<ImageBlockContent | null>(null);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [showImageSourceMenu, setShowImageSourceMenu] = useState(false);
+  const [pendingImageOrder, setPendingImageOrder] = useState<number | null>(null);
+  const [pendingImageSourceBlockId, setPendingImageSourceBlockId] = useState<number | null>(null);
+  const { pickFromGallery, takePhoto } = useImagePicker();
 
   useFocusEffect(
     useCallback(() => {
@@ -83,33 +95,24 @@ export default function NoteDetailScreen() {
       ]);
 
       if (note) {
-        const trimmedTitle = note.title.trim();
-        const isLegacyTitle =
-          !trimmedTitle ||
-          trimmedTitle === "Untitled" ||
-          trimmedTitle === "Sem título";
-        if (isLegacyTitle) {
-          const fallback = formatFallbackTitle(
-            new Date(note.created_at),
-            i18n.language,
-          );
-          setTitle(fallback);
-          updateNoteTitle(noteId, fallback).catch(console.error);
-        } else {
-          setTitle(note.title);
-        }
+        setTitle(note.title);
         setCategoryId(note.category_id);
-        setCreatedAt(note.created_at);
       }
 
       setCategories(allCategories);
 
-      if (noteBlocks.length === 0) {
-        // If there are no blocks, create the first empty text block
-        const firstBlockId = await createBlock(noteId, "text", 1000, "");
-        const newBlocks = await getBlocksByNoteId(noteId);
-        setBlocks(newBlocks);
-        setAutofocusBlockId(firstBlockId);
+      // Ensure there's always an empty text block at the end
+      const lastBlock = noteBlocks[noteBlocks.length - 1];
+      const needsEmptyBlock =
+        noteBlocks.length === 0 ||
+        lastBlock.type !== "text" ||
+        (lastBlock.content && lastBlock.content.trim());
+
+      if (needsEmptyBlock) {
+        const newOrder = lastBlock ? lastBlock.order + 1000 : 1000;
+        await createBlock(noteId, "text", newOrder, "");
+        const updatedBlocks = await getBlocksByNoteId(noteId);
+        setBlocks(updatedBlocks);
       } else {
         setBlocks(noteBlocks);
       }
@@ -170,15 +173,30 @@ export default function NoteDetailScreen() {
       if (undoTimeoutRef.current) {
         clearTimeout(undoTimeoutRef.current);
       }
+      // Delete image files if it's an image block
+      if (block.type === "image") {
+        const imageContent = parseImageContent(block.content);
+        if (imageContent) {
+          await deleteImageFiles(imageContent);
+        }
+      }
       await deleteBlock(block.id);
       setFocusedBlockId(null);
       focusedBlockIdRef.current = null;
-      setUndoInfo({ block });
+      // Don't allow undo for image blocks (files are deleted)
+      if (block.type !== "image") {
+        setUndoInfo({ block });
+        undoTimeoutRef.current = setTimeout(() => {
+          setUndoInfo(null);
+          undoTimeoutRef.current = null;
+        }, 3000);
+      }
+      const remainingBlocks = await getBlocksByNoteId(noteId);
+      if (remainingBlocks.length === 0) {
+        const firstBlockId = await createBlock(noteId, "text", 1000, "");
+        setAutofocusBlockId(firstBlockId);
+      }
       await loadNote();
-      undoTimeoutRef.current = setTimeout(() => {
-        setUndoInfo(null);
-        undoTimeoutRef.current = null;
-      }, 3000);
     } catch (error) {
       console.error("Failed to delete block:", error);
     }
@@ -220,6 +238,15 @@ export default function NoteDetailScreen() {
         newOrder = (currentBlock.order + nextBlock.order) / 2;
       } else {
         newOrder = currentBlock.order + 1000;
+      }
+
+      // For image type, show source menu instead of creating block directly
+      if (type === "image") {
+        // Use the current block's order so the image replaces it (if empty)
+        setPendingImageOrder(currentBlock.order);
+        setPendingImageSourceBlockId(afterBlockId);
+        setShowImageSourceMenu(true);
+        return;
       }
 
       const newBlockId = await createBlock(noteId, type, newOrder, "");
@@ -320,9 +347,54 @@ export default function NoteDetailScreen() {
     ]);
   };
 
-  const fallbackTitle = createdAt
-    ? formatFallbackTitle(new Date(createdAt), i18n.language)
-    : null;
+  const handleAddImage = async (source: "camera" | "gallery") => {
+    setShowImageSourceMenu(false);
+
+    const sourceBlockId = pendingImageSourceBlockId;
+    setPendingImageSourceBlockId(null);
+
+    try {
+      const result =
+        source === "camera" ? await takePhoto() : await pickFromGallery();
+
+      if (!result) {
+        setPendingImageOrder(null);
+        return;
+      }
+
+      // Use pending order if set, otherwise add at end
+      const newOrder = pendingImageOrder ?? (blocks.length > 0 ? blocks[blocks.length - 1].order + 1000 : 1000);
+      setPendingImageOrder(null);
+
+      // Process and save image
+      const { content } = await processAndSaveImage(
+        result.uri,
+        noteId,
+        result.width,
+        result.height
+      );
+
+      // If source block is empty, delete it (image replaces it)
+      if (sourceBlockId) {
+        const sourceBlock = blocks.find((b) => b.id === sourceBlockId);
+        if (sourceBlock && (!sourceBlock.content || !sourceBlock.content.trim())) {
+          await deleteBlock(sourceBlockId);
+        }
+      }
+
+      // Create the image block
+      await createBlock(noteId, "image", newOrder, JSON.stringify(content));
+      await loadNote();
+    } catch (error) {
+      console.error("Failed to add image:", error);
+      setPendingImageOrder(null);
+    }
+  };
+
+  const handleImagePress = (content: ImageBlockContent) => {
+    setViewerImage(content);
+    setShowImageViewer(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -356,48 +428,50 @@ export default function NoteDetailScreen() {
             ]}
             keyboardShouldPersistTaps="handled"
           >
-                      <TouchableOpacity
-                        onPress={() => setShowCategoryPicker(true)}
-                        style={styles.categoryDisplay}
-                      >
-                        {getCurrentCategory() ? (
-                          <>
-                            <View
-                              style={[
-                                styles.categoryDot,
-                                {
-                                  backgroundColor: getCurrentCategory()?.color,
-                                },
-                              ]}
-                            />
-                            <Text style={styles.categoryNameText}>
-                              {getCurrentCategory()?.title}
-                            </Text>
-                          </>
-                        ) : (
-                          <View style={styles.categoryPlaceholderRow}>
-                            <Ionicons
-                              name="pricetag-outline"
-                              size={14}
-                              color="#999"
-                              style={styles.categoryPlaceholderIcon}
-                            />
-                            <Text style={styles.categoryPlaceholderText}>
-                              {t("categories.uncategorized")}
-                            </Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-            
-                      <TextInput
-                        style={styles.titleInput}
-                        value={title}
-                        onChangeText={handleTitleChange}
-                        placeholder={t("notes.notePlaceholder")}
-                        placeholderTextColor="#999"
-                        selectTextOnFocus
-                        onFocus={() => setFocusedBlockId(null)}
+              <View style={styles.titleSection}>
+                <TouchableOpacity
+                  onPress={() => setShowCategoryPicker(true)}
+                  style={styles.categoryDisplay}
+                >
+                  {getCurrentCategory() ? (
+                    <>
+                      <View
+                        style={[
+                          styles.categoryDot,
+                          {
+                            backgroundColor: getCurrentCategory()?.color,
+                          },
+                        ]}
                       />
+                      <Text style={styles.categoryNameText}>
+                        {getCurrentCategory()?.title}
+                      </Text>
+                    </>
+                  ) : (
+                    <View style={styles.categoryPlaceholderRow}>
+                      <Ionicons
+                        name="pricetag-outline"
+                        size={14}
+                        color="#999"
+                        style={styles.categoryPlaceholderIcon}
+                      />
+                      <Text style={styles.categoryPlaceholderText}>
+                        {t("categories.uncategorized")}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TextInput
+                  style={styles.titleInput}
+                  value={title}
+                  onChangeText={handleTitleChange}
+                  placeholder={t("notes.notePlaceholder")}
+                  placeholderTextColor="#bbb"
+                  onFocus={() => setFocusedBlockId(null)}
+                />
+              </View>
+
             {blocks.map((block, index) => {
               const isFocused = focusedBlockId === block.id;
               return (
@@ -418,10 +492,11 @@ export default function NoteDetailScreen() {
                       (autofocus === "1" && index === 0) ||
                       autofocusBlockId === block.id
                     }
+                    isFocused={isFocused}
                     onFocusBlock={() => handleFocusBlock(block.id)}
                     onInsertBlockBelow={handleInsertBlockBelow}
                     onDeleteBlock={handleDeleteBlock}
-                    isFocused={isFocused}
+                    onImagePress={handleImagePress}
                   />
                   </View>
                 {/* Insert block button between blocks */}
@@ -533,6 +608,21 @@ export default function NoteDetailScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      <ImageViewer
+        visible={showImageViewer}
+        imageContent={viewerImage}
+        onClose={() => setShowImageViewer(false)}
+      />
+
+      <ImageSourceMenu
+        visible={showImageSourceMenu}
+        onSelectSource={handleAddImage}
+        onClose={() => {
+          setShowImageSourceMenu(false);
+          setPendingImageOrder(null);
+        }}
+      />
     </View>
   );
 }
@@ -576,16 +666,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+  },
+  titleSection: {
+    backgroundColor: '#f8f8f8',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   categoryDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
     borderRadius: 12,
   },
   categoryDot: {
@@ -613,8 +714,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: "#000",
-    marginBottom: 24,
     padding: 0,
+    minHeight: 32,
   },
   focusedBlockContainer: {
     backgroundColor: "rgba(0,0,0,0.04)",

@@ -17,9 +17,10 @@ import {
   unarchiveNote,
 } from "@/lib/notes.repository";
 import { formatFallbackTitle } from "@/lib/title";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -51,6 +52,9 @@ const CATEGORY_COLORS = [
 ];
 
 type CategoryFilter = "all" | "uncategorized" | number;
+type ViewMode = "list" | "grid";
+
+const VIEW_MODE_KEY = "@notes_view_mode";
 
 export default function NotesListScreen() {
   const { t, i18n } = useTranslation();
@@ -85,6 +89,25 @@ export default function NotesListScreen() {
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<number>>(
     new Set(),
   );
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  // Load saved view mode
+  useEffect(() => {
+    AsyncStorage.getItem(VIEW_MODE_KEY).then((saved) => {
+      if (saved === "list" || saved === "grid") {
+        setViewMode(saved);
+      }
+    });
+  }, []);
+
+  const toggleViewMode = async () => {
+    const newMode = viewMode === "list" ? "grid" : "list";
+    setViewMode(newMode);
+    await AsyncStorage.setItem(VIEW_MODE_KEY, newMode);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -161,10 +184,9 @@ export default function NotesListScreen() {
 
   const handleCreateNote = async () => {
     try {
-      const fallbackTitle = formatFallbackTitle(new Date(), i18n.language);
-      const id = await createNote(fallbackTitle);
+      const id = await createNote("");
       // Create an initial text block for the new note
-      await createBlock(id, "text", 1000, ""); 
+      await createBlock(id, "text", 1000, "");
       router.push({ pathname: "/note/[id]", params: { id: String(id), autofocus: "1" } });
     } catch (error) {
       console.error("Failed to create note:", error);
@@ -581,6 +603,52 @@ export default function NotesListScreen() {
     );
   };
 
+  const renderNoteCard = ({ item }: { item: NoteWithPreview }) => {
+    const category = getCategory(item.category_id);
+    const categoryColor = getCategoryColor(item.category_id);
+    const previewText = getPreviewText(item);
+    const displayTitle = isLegacyTitle(item.title)
+      ? formatFallbackTitle(new Date(item.created_at), i18n.language)
+      : item.title;
+
+    return (
+      <TouchableOpacity
+        style={styles.noteCard}
+        onPress={() => handleNotePress(item.id)}
+        onLongPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          Alert.alert(
+            displayTitle || t("notes.untitled"),
+            undefined,
+            [
+              { text: t("notes.archive"), onPress: () => handleArchive(item.id) },
+              { text: t("notes.delete"), style: "destructive", onPress: () => handleDelete(item.id) },
+              { text: t("common.cancel"), style: "cancel" },
+            ]
+          );
+        }}
+        activeOpacity={0.7}
+      >
+        {categoryColor && (
+          <View style={[styles.cardCategoryBar, { backgroundColor: categoryColor }]} />
+        )}
+        <View style={styles.cardContent}>
+          <View>
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {displayTitle || t("notes.untitled")}
+            </Text>
+            {previewText && (
+              <Text style={styles.cardPreview} numberOfLines={4}>
+                {previewText}
+              </Text>
+            )}
+          </View>
+          <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const isFiltering = searchText.trim() !== "" || selectedCategory !== "all";
 
   return (
@@ -598,23 +666,32 @@ export default function NotesListScreen() {
       </View>
 
       <View style={styles.filterContainer}>
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            value={searchText}
-            onChangeText={setSearchText}
-            placeholder={t("notes.searchPlaceholder")}
-            placeholderTextColor="#999"
-            returnKeyType="search"
-          />
-          {searchText.length > 0 && (
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={() => setSearchText("")}
-            >
-              <Text style={styles.clearButtonText}>×</Text>
-            </TouchableOpacity>
-          )}
+        <View style={styles.searchRow}>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder={t("notes.searchPlaceholder")}
+              placeholderTextColor="#999"
+              returnKeyType="search"
+            />
+            {searchText.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setSearchText("")}
+              >
+                <Text style={styles.clearButtonText}>×</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity style={styles.viewToggle} onPress={toggleViewMode}>
+            <Ionicons
+              name={viewMode === "list" ? "grid-outline" : "list-outline"}
+              size={20}
+              color="#666"
+            />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -701,10 +778,13 @@ export default function NotesListScreen() {
       </View>
 
       <FlatList
+        key={viewMode}
         data={notes}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={renderNote}
-        contentContainerStyle={styles.listContent}
+        renderItem={viewMode === "list" ? renderNote : renderNoteCard}
+        numColumns={viewMode === "grid" ? 2 : 1}
+        contentContainerStyle={viewMode === "grid" ? styles.gridContent : styles.listContent}
+        columnWrapperStyle={viewMode === "grid" ? styles.gridRow : undefined}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
@@ -1079,14 +1159,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#e0e0e0",
   },
-  searchContainer: {
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 16,
     marginTop: 12,
+    gap: 8,
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#f5f5f5",
     borderRadius: 10,
     paddingHorizontal: 12,
+  },
+  viewToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchInput: {
     flex: 1,
@@ -1137,6 +1231,50 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  gridContent: {
+    flexGrow: 1,
+    padding: 12,
+    backgroundColor: "#f5f5f5",
+  },
+  gridRow: {
+    justifyContent: "space-between",
+  },
+  noteCard: {
+    width: "48%",
+    minHeight: 180,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#e0e0e0",
+    overflow: "hidden",
+  },
+  cardCategoryBar: {
+    height: 4,
+    width: "100%",
+  },
+  cardContent: {
+    flex: 1,
+    padding: 12,
+    justifyContent: "space-between",
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 6,
+  },
+  cardPreview: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  cardDate: {
+    fontSize: 12,
+    color: "#999",
   },
   noteItem: {
     paddingHorizontal: 20,

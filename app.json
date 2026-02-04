@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "take-note",
+    "name": "Take Note",
     "slug": "take-note",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,7 +23,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.devboot.takenote"
     },
     "web": {
       "output": "static",
@@ -49,6 +50,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2897dec3-ce31-4b97-ae1b-003204747d9b"
+      }
     }
   }
 }

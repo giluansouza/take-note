@@ -1,5 +1,6 @@
 import { getDatabase } from './db';
 import { BlockType } from './blocks.repository';
+import { deleteNoteImages } from './images.service';
 
 export interface Note {
   id: number;
@@ -137,6 +138,7 @@ export async function updateNoteTitle(id: number, title: string): Promise<void> 
 
 export async function deleteNote(id: number): Promise<void> {
   const db = await getDatabase();
+  await deleteNoteImages(id);
   await db.runAsync('DELETE FROM notes WHERE id = ?', [id]);
 }
 

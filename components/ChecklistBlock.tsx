@@ -24,7 +24,7 @@ interface ChecklistBlockProps {
   autoFocus?: boolean;
   onFocusBlock?: () => void;
   onTransform?: (blockId: number, newType: BlockType, newContent: string | null) => void;
-  onInsertBlockBelow?: () => void;
+  onInsertBlockBelow?: (type?: BlockType) => void;
   onDelete?: () => void;
 }
 
