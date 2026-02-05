@@ -50,6 +50,8 @@ const CATEGORY_COLORS = [
   "#5C7AEA", // Blue
   "#A66CFF", // Purple
   "#FF6B9D", // Pink
+  "#8D6E63", // Brown
+  "#6D4C41", // Dark Brown
   "#95A5A6", // Gray
 ];
 
@@ -94,7 +96,7 @@ export default function NotesListScreen() {
   );
 
   // View mode state
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   // Load saved view mode
   useEffect(() => {
@@ -488,6 +490,8 @@ export default function NotesListScreen() {
     if (!trimmed) return null;
 
     switch (type) {
+      case 'image':
+        return null;
       case 'checklist':
         try {
           const parsed = parseChecklistContent(trimmed);

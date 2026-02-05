@@ -22,6 +22,7 @@ interface ListBlockProps {
   block: Block;
   onUpdate: () => void;
   autoFocus?: boolean;
+  isFocused?: boolean;
   onFocusBlock?: () => void;
   onTransform?: (blockId: number, newType: BlockType, newContent: string | null) => void;
   onInsertBlockBelow?: (type?: BlockType) => void;
@@ -32,6 +33,7 @@ export function ListBlock({
   block,
   onUpdate,
   autoFocus,
+  isFocused = false,
   onFocusBlock,
   onTransform,
   onInsertBlockBelow,
@@ -41,7 +43,6 @@ export function ListBlock({
   const [items, setItems] = useState<ListItem[]>(() =>
     parseListContent(block.content)
   );
-  const [isFocused, setIsFocused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRefs = useRef<Map<number, TextInput>>(new Map());
   const autoFocusUsedRef = useRef(false);
@@ -126,7 +127,6 @@ export function ListBlock({
 
   const handleFocus = () => {
     focusCountRef.current += 1;
-    setIsFocused(true);
     onFocusBlock?.();
   };
 
@@ -134,7 +134,6 @@ export function ListBlock({
     focusCountRef.current -= 1;
     setTimeout(() => {
       if (focusCountRef.current <= 0) {
-        setIsFocused(false);
         focusCountRef.current = 0;
       }
     }, 100);

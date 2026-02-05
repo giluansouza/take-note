@@ -13,12 +13,25 @@ function getAppNameByProfile(profile) {
   return base;
 }
 
+function getAndroidPackageByProfile(profile) {
+  const base = "com.devboot.takenote";
+
+  if (profile === "development") return `${base}.dev`;
+  if (profile === "preview") return `${base}.preview`;
+
+  return base;
+}
+
 module.exports = ({ config }) => {
   const profile = process.env.EAS_BUILD_PROFILE;
 
   return {
     ...config,
     name: getAppNameByProfile(profile),
+    android: {
+      ...config.android,
+      package: getAndroidPackageByProfile(profile),
+    },
   };
 };
 

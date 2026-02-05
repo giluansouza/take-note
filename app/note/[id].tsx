@@ -47,6 +47,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -466,6 +467,12 @@ export default function NoteDetailScreen() {
                   </TouchableOpacity>
                   <View style={styles.headerActions}>
                     <TouchableOpacity
+                      onPress={() => setShowCategoryPicker(true)}
+                      style={styles.menuButton}
+                    >
+                      <Ionicons name="pricetag-outline" size={20} color={getCurrentCategory()?.color || colors.headerText} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       onPress={handleDeleteNote}
                       style={styles.menuButton}
                     >
@@ -474,56 +481,18 @@ export default function NoteDetailScreen() {
                   </View>
                 </View>
 
-        <ScrollView
-          ref={scrollRef}
-          style={styles.content}
-          contentContainerStyle={[
-            styles.contentContainer,
-            { paddingBottom: Math.max(100, keyboardHeight) },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-          onTouchStart={() => {
-            // Touches inside a ScrollView don't reliably bubble to wrappers.
-            // Use this to clear the focused block highlight when tapping outside,
-            // even if the keyboard is already closed.
-            handleBlurAll();
-          }}
-        >
-              <View style={[styles.titleSection, { backgroundColor: colors.backgroundTertiary, borderBottomColor: colors.borderLight }]}>
-                <TouchableOpacity
-                  onPress={() => setShowCategoryPicker(true)}
-                  style={[styles.categoryDisplay, { backgroundColor: colors.background }]}
-                >
-                  {getCurrentCategory() ? (
-                    <>
-                      <View
-                        style={[
-                          styles.categoryDot,
-                          {
-                            backgroundColor: getCurrentCategory()?.color,
-                          },
-                        ]}
-                      />
-                      <Text style={[styles.categoryNameText, { color: colors.textSecondary }]}>
-                        {getCurrentCategory()?.title}
-                      </Text>
-                    </>
-                  ) : (
-                    <View style={styles.categoryPlaceholderRow}>
-                      <Ionicons
-                        name="pricetag-outline"
-                        size={14}
-                        color={colors.placeholder}
-                        style={styles.categoryPlaceholderIcon}
-                      />
-                      <Text style={[styles.categoryPlaceholderText, { color: colors.textMuted }]}>
-                        {t("categories.uncategorized")}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
+        <TouchableWithoutFeedback onPress={handleBlurAll} accessible={false}>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.content}
+            contentContainerStyle={[
+              styles.contentContainer,
+              { paddingBottom: Math.max(100, keyboardHeight) },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          >
+              <View style={[styles.titleSection, { backgroundColor: colors.backgroundTertiary, borderBottomColor: colors.borderLight, borderLeftWidth: 4, borderLeftColor: getCurrentCategory()?.color || colors.border }]}>
                 <TextInput
                   style={[styles.titleInput, { color: colors.text }]}
                   value={title}
@@ -601,7 +570,8 @@ export default function NoteDetailScreen() {
                 <Ionicons name="add" size={24} color={colors.placeholder} />
               </TouchableOpacity>
             )}
-        </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
       {/* Category Picker Modal */}
@@ -807,6 +777,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     padding: 0,
     minHeight: 32,
+  },
+  categoryIconButton: {
+    alignSelf: "flex-start",
+    marginTop: 8,
   },
   focusedBlockContainer: {
     borderRadius: 4,

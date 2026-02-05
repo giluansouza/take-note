@@ -24,7 +24,7 @@ Regras:
 - Sempre esperar 300-500ms apos abrir a tela antes de capturar (evita flicker).
 - Sem teclado: toque em uma area neutra para fechar.
 - Evitar estados "vazios" (lista sem notas, archived vazio).
-- Para capturar sem o banner de anuncios, rode com: `EXPO_PUBLIC_DISABLE_ADS=1`.
+- Para capturar sem o banner de anuncios, use o profile `preview-ads-off`.
 
 ## 3) Export e nomeacao
 

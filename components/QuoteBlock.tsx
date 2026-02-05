@@ -8,6 +8,7 @@ interface QuoteBlockProps {
   block: Block;
   onUpdate: () => void;
   autoFocus?: boolean;
+  isFocused?: boolean;
   onTransform: (blockId: number, newType: BlockType, newContent: string | null) => void;
   onFocusBlock?: () => void;
   onInsertBlockBelow?: (type?: BlockType) => void;
@@ -18,6 +19,7 @@ export function QuoteBlock({
   block,
   onUpdate,
   autoFocus,
+  isFocused = false,
   onTransform,
   onFocusBlock,
   onInsertBlockBelow,
@@ -25,7 +27,6 @@ export function QuoteBlock({
 }: QuoteBlockProps) {
   const { colors } = useTheme();
   const [content, setContent] = useState(block.content || '');
-  const [isFocused, setIsFocused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<TextInput | null>(null);
 
@@ -55,12 +56,7 @@ export function QuoteBlock({
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
     onFocusBlock?.();
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
   };
 
   return (
@@ -83,7 +79,6 @@ export function QuoteBlock({
         placeholder="Quote"
         placeholderTextColor={colors.placeholder}
         onFocus={handleFocus}
-        onBlur={handleBlur}
         blurOnSubmit={false}
         returnKeyType="next"
       />

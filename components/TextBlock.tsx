@@ -23,6 +23,7 @@ interface TextBlockProps {
   block: Block;
   onUpdate: () => void;
   autoFocus?: boolean;
+  isFocused?: boolean;
   placeholder?: string;
   showSlashHint?: boolean;
   onDetectedMarkdownShortcut?: (type: MarkdownShortcutHintType) => void;
@@ -49,6 +50,7 @@ export function TextBlock({
   block,
   onUpdate,
   autoFocus,
+  isFocused = false,
   placeholder,
   showSlashHint,
   onDetectedMarkdownShortcut,
@@ -60,7 +62,7 @@ export function TextBlock({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const [content, setContent] = useState(block.content || "");
-  const [isFocused, setIsFocused] = useState(false);
+  const [hasInputFocus, setHasInputFocus] = useState(false);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [showHint, setShowHint] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -237,12 +239,12 @@ export function TextBlock({
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    setHasInputFocus(true);
     onFocusBlock?.();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    setHasInputFocus(false);
   };
 
   const handleSelectionChange = (
@@ -278,7 +280,7 @@ export function TextBlock({
           placeholderTextColor={colors.placeholder}
           multiline
         />
-        {showHint && isFocused && (
+        {showHint && hasInputFocus && (
           <Text style={[styles.hint, { color: colors.textMuted }]}>
             {t("hints.slashTip")}
           </Text>

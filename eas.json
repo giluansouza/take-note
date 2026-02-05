@@ -14,6 +14,18 @@
         "buildType": "apk"
       }
     },
+    "preview-ads-on": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_DISABLE_ADS": "0"
+      }
+    },
+    "preview-ads-off": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_DISABLE_ADS": "1"
+      }
+    },
     "production": {
       "autoIncrement": true
     },

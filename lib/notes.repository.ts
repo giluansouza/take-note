@@ -54,14 +54,14 @@ export async function getAllNotesWithPreview(filter?: NotesFilter): Promise<Note
       (
         SELECT content
         FROM blocks
-        WHERE blocks.note_id = notes.id
+        WHERE blocks.note_id = notes.id AND blocks.type != 'image'
         ORDER BY blocks."order" ASC
         LIMIT 1
       ) AS first_block_content,
       (
         SELECT type
         FROM blocks
-        WHERE blocks.note_id = notes.id
+        WHERE blocks.note_id = notes.id AND blocks.type != 'image'
         ORDER BY blocks."order" ASC
         LIMIT 1
       ) AS first_block_type

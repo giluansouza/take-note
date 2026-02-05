@@ -44,6 +44,7 @@ export function BlockRenderer({
           block={block}
           onUpdate={onUpdate}
           autoFocus={autoFocus}
+          isFocused={isFocused}
           placeholder={textPlaceholder}
           showSlashHint={showSlashHint}
           onDetectedMarkdownShortcut={onDetectedMarkdownShortcut}
@@ -59,6 +60,7 @@ export function BlockRenderer({
           block={block}
           onUpdate={onUpdate}
           autoFocus={autoFocus}
+          isFocused={isFocused}
           onTransform={onTransform}
           onFocusBlock={onFocusBlock}
           onInsertBlockBelow={(type) => onInsertBlockBelow(block.id, type)}
@@ -71,6 +73,7 @@ export function BlockRenderer({
           block={block}
           onUpdate={onUpdate}
           autoFocus={autoFocus}
+          isFocused={isFocused}
           onTransform={onTransform}
           onFocusBlock={onFocusBlock}
           onInsertBlockBelow={(type) => onInsertBlockBelow(block.id, type)}
@@ -83,6 +86,7 @@ export function BlockRenderer({
           block={block}
           onUpdate={onUpdate}
           autoFocus={autoFocus}
+          isFocused={isFocused}
           onTransform={onTransform}
           onFocusBlock={onFocusBlock}
           onInsertBlockBelow={(type) => onInsertBlockBelow(block.id, type)}
@@ -95,6 +99,7 @@ export function BlockRenderer({
           block={block}
           onUpdate={onUpdate}
           autoFocus={autoFocus}
+          isFocused={isFocused}
           onFocusBlock={onFocusBlock}
           onTransform={onTransform}
           onInsertBlockBelow={(type) => onInsertBlockBelow(block.id, type)}
@@ -107,6 +112,7 @@ export function BlockRenderer({
           block={block}
           onUpdate={onUpdate}
           autoFocus={autoFocus}
+          isFocused={isFocused}
           onFocusBlock={onFocusBlock}
           onTransform={onTransform}
           onInsertBlockBelow={(type) => onInsertBlockBelow(block.id, type)}
