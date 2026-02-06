@@ -5,6 +5,7 @@ import {
   unarchiveNote,
 } from "@/lib/notes.repository";
 import { useTheme } from "@/lib/theme";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
@@ -21,7 +22,7 @@ import { Swipeable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ArchivedScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -91,7 +92,7 @@ export default function ArchivedScreen() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString(i18n.language, {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -144,7 +145,8 @@ export default function ArchivedScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={[styles.backText, { color: colors.headerText }]}>{"<"} {t("common.back")}</Text>
+          <Ionicons name="chevron-back" size={20} color={colors.headerText} />
+          <Text style={[styles.backText, { color: colors.headerText }]}>{t("common.back")}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>{t("archived.title")}</Text>
         <View style={styles.placeholder} />
@@ -177,11 +179,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backButton: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 4,
     paddingRight: 12,
+    flexShrink: 0,
   },
   backText: {
     fontSize: 16,
+    marginLeft: 4,
   },
   headerTitle: {
     fontSize: 17,

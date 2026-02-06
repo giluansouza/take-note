@@ -721,9 +721,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 4,
     paddingRight: 12,
+    flexShrink: 0,
   },
   backText: {
     fontSize: 16,
+    marginLeft: 4,
   },
   menuButton: {
     paddingHorizontal: 8,

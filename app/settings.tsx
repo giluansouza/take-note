@@ -1,9 +1,9 @@
 import {
   availableLanguages,
-  getCurrentLanguage,
   setLanguage,
 } from "@/lib/i18n";
 import { useTheme, ThemeMode } from "@/lib/theme";
+import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
@@ -37,7 +37,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
-  const currentLanguage = getCurrentLanguage();
+  const currentLanguage = i18n.language;
 
   const handleBack = () => {
     router.back();
@@ -81,8 +81,9 @@ export default function SettingsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: colors.headerBackground }]}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={20} color={colors.headerText} />
           <Text style={[styles.backText, { color: colors.headerText }]}>
-            {"<"} {t("common.back")}
+            {t("common.back")}
           </Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>{t("settings.title")}</Text>
@@ -247,11 +248,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backButton: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 4,
     paddingRight: 12,
+    flexShrink: 0,
   },
   backText: {
     fontSize: 16,
+    marginLeft: 4,
   },
   headerTitle: {
     fontSize: 17,

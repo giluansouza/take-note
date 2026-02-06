@@ -1,4 +1,4 @@
-import "@/lib/i18n";
+import { i18nReady } from "@/lib/i18n";
 import { adManager } from "@/lib/ads";
 import { runMigrations } from "@/lib/migrations";
 import { PremiumProvider } from "@/lib/premium";
@@ -21,6 +21,7 @@ function AppContent() {
     Promise.all([
       runMigrations(),
       adManager.initialize(),
+      i18nReady,
     ])
       .then(() => setIsReady(true))
       .catch(console.error);

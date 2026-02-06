@@ -38,7 +38,7 @@ const languageDetector = {
   },
 };
 
-i18n
+export const i18nReady = i18n
   .use(languageDetector)
   .use(initReactI18next)
   .init({
